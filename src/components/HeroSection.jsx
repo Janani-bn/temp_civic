@@ -1,4 +1,5 @@
 import { ArrowRight, Map } from 'lucide-react';
+<<<<<<< HEAD
 import './HeroSection.css';
 import './HeroSection.css';
 
@@ -9,25 +10,57 @@ const HeroSection = ({ onOpenReport }) => {
         
         <div className="hero-content animate-fade-in">
           <div className="hero-badge">AI-Powered Tech for Communities</div>
+=======
+import { useNavigate } from 'react-router-dom';
+import './HeroSection.css';
+
+const HeroSection = ({ onOpenReport }) => {
+  const navigate = useNavigate();
+
+  return (
+    <section className="hero section">
+      <div className="container hero-container">
+
+        <div className="hero-content">
+          <div className="hero-badge">AI-Powered Tech for Communities</div>
+
+>>>>>>> 3717e99 (Added LiveMap feature)
           <h1 className="hero-title">
             Empowering Citizens.<br />
             <span className="text-primary">Fixing Cities Faster.</span>
           </h1>
+<<<<<<< HEAD
           <p className="hero-subtitle">
             Report local issues instantly, track resolutions in real-time, and join a connected community shaping a better tomorrow together.
           </p>
           
+=======
+
+          <p className="hero-subtitle">
+            Report local issues instantly, track resolutions in real-time.
+          </p>
+
+>>>>>>> 3717e99 (Added LiveMap feature)
           <div className="hero-cta">
             <button className="btn btn-primary btn-lg" onClick={onOpenReport}>
               Report an Issue
               <ArrowRight size={20} />
             </button>
+<<<<<<< HEAD
             <button className="btn btn-secondary btn-lg">
+=======
+
+            <button
+              className="btn btn-secondary btn-lg"
+              onClick={() => navigate('/map')}
+            >
+>>>>>>> 3717e99 (Added LiveMap feature)
               <Map size={20} />
               View Live Map
             </button>
           </div>
         </div>
+<<<<<<< HEAD
         
         <div className="hero-visual animate-fade-in-delay-1">
           <div className="hero-image-wrapper">
@@ -64,10 +97,16 @@ const HeroSection = ({ onOpenReport }) => {
             </div>
           </div>
         </div>
+=======
+>>>>>>> 3717e99 (Added LiveMap feature)
 
       </div>
     </section>
   );
 };
 
+<<<<<<< HEAD
 export default HeroSection;
+=======
+export default HeroSection;
+>>>>>>> 3717e99 (Added LiveMap feature)
