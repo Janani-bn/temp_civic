@@ -38,12 +38,22 @@ const AutoCenter = ({ userLocation }) => {
     const map = useMap();
     useEffect(() => {
         if (userLocation) map.setView(userLocation, 13);
-    }, [userLocation]);
+    }, [userLocation, map]);
     return null;
 };
 
 const LiveMap = () => {
-    const [issues, setIssues] = useState([]);
+    const [issues] = useState(() => {
+        const stored = JSON.parse(localStorage.getItem('civicfix_issues') || '[]');
+        return stored.filter(issue => 
+            issue.position && 
+            Array.isArray(issue.position) && 
+            issue.position.length === 2 &&
+            !isNaN(issue.position[0]) && 
+            !isNaN(issue.position[1])
+        );
+    });
+
     const [userLocation, setUserLocation] = useState([20.5937, 78.9629]); // Default: India center
 
     // 📡 Get user's GPS location
@@ -54,13 +64,8 @@ const LiveMap = () => {
         );
     }, []);
 
-    // 📦 Load issues from localStorage
-    useEffect(() => {
-        const stored = JSON.parse(localStorage.getItem('civicfix_issues') || '[]');
-        setIssues(stored);
-    }, []);
-
     return (
+
         <div style={{ padding: '20px' }}>
             <h2>Live Map</h2>
 
@@ -98,34 +103,6 @@ const LiveMap = () => {
                 ))}
             </MapContainer>
         </div>
-import L from 'leaflet';
-
-// Fix marker icons
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-});
-
-const LiveMap = () => {
-    const position = [13.0827, 80.2707];
-    return (
-        <section id="live-map" style={{ padding: "40px 20px" }}>
-            <h2 style={{ textAlign: "center", marginBottom: "20px" }}>Live Map</h2>
-            <MapContainer
-                center={position}
-                zoom={13}
-                style={{ height: "500px", width: "100%", borderRadius: "16px" }}
-            >
-                <TileLayer
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    attribution='&copy; OpenStreetMap contributors'
-                />
-                <Marker position={position}>
-                    <Popup>🚨 Issue reported here</Popup>
-                </Marker>
-            </MapContainer>
-        </section>
     );
 };
 

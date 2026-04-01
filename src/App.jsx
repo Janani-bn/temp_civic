@@ -1,14 +1,11 @@
 import Navbar from './components/Navbar';
+import Footer from './components/Footer';
+import ReportIssueModal from './components/ReportIssueModal';
+import LiveMap from './components/LiveMap';
 import HeroSection from './components/HeroSection';
 import ExplainerSection from './components/ExplainerSection';
 import StatsSection from './components/StatsSection';
 import FeaturesSection from './components/FeaturesSection';
-import Footer from './components/Footer';
-import ReportIssueModal from './components/ReportIssueModal';
-
-import LiveMap from './components/LiveMap';
-
-import LiveMap from './components/LiveMap'; // ✅ normal import
 
 import { useState } from 'react';
 import './App.css';
@@ -32,7 +29,6 @@ function App() {
     <Router>
       <Navbar onOpenReport={() => setIsReportModalOpen(true)} />
 
-
       <Routes>
         <Route path="/" element={<Home onOpenReport={() => setIsReportModalOpen(true)} />} />
         <Route path="/map" element={<LiveMap />} />
@@ -45,18 +41,6 @@ function App() {
         onClose={() => setIsReportModalOpen(false)}
       />
     </Router>
-
-      <main>
-        <HeroSection onOpenReport={() => setIsReportModalOpen(true)} />
-        <ExplainerSection />
-        <LiveMap />  {/* ✅ Map here */}
-        <StatsSection />
-        <FeaturesSection />
-      </main>
-      <Footer />
-      <ReportIssueModal isOpen={isReportModalOpen} onClose={() => setIsReportModalOpen(false)} />
-    </>
-
   );
 }
 
