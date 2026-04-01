@@ -12,10 +12,13 @@ const Navbar = ({ onOpenReport }) => {
         <div className="nav-links">
           <a href="#" className="nav-link">Platform</a>
           <a href="/map" className="nav-link">Live Map</a>
+          <a href="#live-map" className="nav-link">Live Map</a>  {/* ✅ scrolls to map */}
           <a href="#" className="nav-link">Community</a>
         </div>
         <div className="nav-actions">
-          <button className="btn btn-primary nav-btn" onClick={onOpenReport}>Report Issue</button>
+          <button className="btn btn-primary nav-btn" onClick={onOpenReport}>
+            Report Issue
+          </button>
         </div>
       </div>
     </nav>

@@ -3,7 +3,6 @@ import { X, Upload, CheckCircle, MapPin } from 'lucide-react';
 import './ReportIssueModal.css';
 
 const ReportIssueModal = ({ isOpen, onClose }) => {
-  const [step, setStep] = useState(1);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
   const handleSubmit = (e) => {
@@ -13,7 +12,6 @@ const ReportIssueModal = ({ isOpen, onClose }) => {
 
   const resetForm = () => {
     setIsSubmitted(false);
-    setStep(1);
     onClose();
   };
 
