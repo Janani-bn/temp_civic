@@ -3,34 +3,43 @@ const pool = require('./database');
 const initDatabase = async () => {
     const createTableQuery = `
         CREATE TABLE IF NOT EXISTS complaints (
-            id SERIAL PRIMARY KEY,
-            complaint_id VARCHAR(20) UNIQUE NOT NULL,
-            name VARCHAR(255) NOT NULL,
-            phone VARCHAR(20) NOT NULL,
-            email VARCHAR(255),
-            area VARCHAR(255) NOT NULL,
-            city VARCHAR(255) NOT NULL,
-            landmark VARCHAR(255),
-            issue_type VARCHAR(100) NOT NULL,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            complaint_id TEXT UNIQUE NOT NULL,
+            name TEXT NOT NULL,
+            phone TEXT NOT NULL,
+            email TEXT,
+            area TEXT NOT NULL,
+            city TEXT NOT NULL,
+            landmark TEXT,
+            issue_type TEXT NOT NULL,
             description TEXT NOT NULL,
-            severity VARCHAR(20) DEFAULT 'medium',
-            image_url VARCHAR(500),
-            latitude DECIMAL(10, 8),
-            longitude DECIMAL(11, 8),
-            status VARCHAR(50) DEFAULT 'Pending',
-            department VARCHAR(100) DEFAULT 'General Administration',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            severity TEXT DEFAULT 'medium',
+            image_url TEXT,
+            latitude REAL,
+            longitude REAL,
+            status TEXT DEFAULT 'Pending',
+            department TEXT DEFAULT 'General Administration',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
-
-        CREATE INDEX IF NOT EXISTS idx_complaints_status ON complaints(status);
-        CREATE INDEX IF NOT EXISTS idx_complaints_department ON complaints(department);
-        CREATE INDEX IF NOT EXISTS idx_complaints_complaint_id ON complaints(complaint_id);
     `;
 
     try {
         await pool.query(createTableQuery);
-        console.log('Complaints table created successfully');
+        
+        // SQLite doesn't support IF NOT EXISTS for CREATE INDEX before version 3.27
+        // But better-sqlite3 handles common errors. We'll wrap individual index creations.
+        const indices = [
+            'CREATE INDEX IF NOT EXISTS idx_complaints_status ON complaints(status)',
+            'CREATE INDEX IF NOT EXISTS idx_complaints_department ON complaints(department)',
+            'CREATE INDEX IF NOT EXISTS idx_complaints_complaint_id ON complaints(complaint_id)'
+        ];
+
+        for (const index of indices) {
+            await pool.query(index);
+        }
+
+        console.log('Complaints table and indices created successfully');
     } catch (err) {
         console.error('Error creating complaints table:', err);
         throw err;

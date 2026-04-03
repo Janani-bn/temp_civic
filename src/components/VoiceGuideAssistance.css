@@ -1,0 +1,39 @@
+.voice-guide-widget {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    width: min(360px, calc(100vw - 32px));
+    background: #ffffff;
+    border: 1px solid #d8e2f3;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+    padding: 14px;
+    z-index: 1500;
+}
+
+.voice-guide-widget h3 {
+    margin: 0 0 8px;
+    font-size: 1rem;
+}
+
+.guide-step-text {
+    margin: 0 0 12px;
+    color: #4a5568;
+    font-size: 0.92rem;
+    line-height: 1.35;
+}
+
+.guide-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.guide-highlight {
+    position: relative;
+    z-index: 1400;
+    outline: 3px solid #2563eb;
+    box-shadow: 0 0 0 6px rgba(37, 99, 235, 0.25);
+    border-radius: 10px;
+    transition: outline 0.2s ease, box-shadow 0.2s ease;
+}

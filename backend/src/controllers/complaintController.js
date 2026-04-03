@@ -8,6 +8,12 @@ const { routeToDepartment } = require('../utils/departmentRouter');
 const createComplaint = async (req, res, next) => {
     try {
         const complaintData = req.body;
+        
+        // If a file was uploaded, add the image_url to complaintData
+        if (req.file) {
+            // Store relative path so backend/server can serve it statically
+            complaintData.imageUrl = `/uploads/${req.file.filename}`;
+        }
 
         // Create complaint (auto-generates ID and assigns department)
         const complaint = await Complaint.create(complaintData);

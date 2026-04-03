@@ -9,6 +9,7 @@ import FeaturesSection from './components/FeaturesSection';
 import SignUp from './components/SignUp';
 import TrackComplaint from './components/TrackComplaint';
 import AdminDashboard from './components/AdminDashboard';
+import VoiceGuideAssistant from './components/VoiceGuideAssistance';
 
 import { useState } from 'react';
 import './App.css';
@@ -47,6 +48,7 @@ function App() {
         isOpen={isReportModalOpen}
         onClose={() => setIsReportModalOpen(false)}
       />
+      <VoiceGuideAssistant />
     </Router>
 
   );

@@ -15,12 +15,13 @@ const {
     validateStatusUpdate,
     validateDepartmentAssignment
 } = require('../middleware/validateComplaint');
+const upload = require('../middleware/uploadMiddleware');
 
 // Routes match the architecture specification:
 
 // 1. POST /complaints - Create complaint
-// Generates unique complaint ID, stores in database
-router.post('/', validateComplaint, createComplaint);
+// Generates unique complaint ID, stores in database, handles image upload
+router.post('/', upload.single('image'), validateComplaint, createComplaint);
 
 // 2. GET /complaints/:id - Fetch complaint details
 router.get('/:id', getComplaintById);

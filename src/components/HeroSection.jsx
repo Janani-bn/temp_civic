@@ -19,7 +19,7 @@ const HeroSection = ({ onOpenReport }) => {
             Help make your neighborhood a better place by reporting local problems directly to the authorities. Together we can build a cleaner, safer community.
           </p>
           <div className="hero-cta">
-            <button className="btn btn-primary btn-lg" onClick={onOpenReport}>
+            <button className="btn btn-primary btn-lg" onClick={onOpenReport} data-guide-id="report-button">
               Report an Issue Now
             </button>
             <button className="btn btn-secondary btn-lg" onClick={() => navigate('/signup')}

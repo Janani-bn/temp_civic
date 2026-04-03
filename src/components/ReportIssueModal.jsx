@@ -19,6 +19,7 @@ const ReportIssueModal = ({ isOpen, onClose }) => {
   const [issueId, setIssueId] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const [selectedFile, setSelectedFile] = useState(null);
   const [formData, setFormData] = useState({
     fullName: '',
     phone: '',
@@ -38,6 +39,12 @@ const ReportIssueModal = ({ isOpen, onClose }) => {
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleFileChange = (e) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setSelectedFile(e.target.files[0]);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -63,50 +70,52 @@ const ReportIssueModal = ({ isOpen, onClose }) => {
       return;
     }
 
-    // Prepare complaint data for API
-    const complaintData = {
-      name: formData.fullName,
-      phone: formData.phone,
-      email: formData.email,
-      area: formData.area,
-      city: formData.city,
-      landmark: formData.landmark,
-      issueType: formData.issueType,
-      description: formData.description,
-      severity: formData.severity,
-      latitude: position[0],
-      longitude: position[1],
-    };
+    // Prepare FormData for multipart/form-data submission
+    const formDataToSend = new FormData();
+    formDataToSend.append('name', formData.fullName);
+    formDataToSend.append('phone', formData.phone);
+    formDataToSend.append('email', formData.email);
+    formDataToSend.append('area', formData.area);
+    formDataToSend.append('city', formData.city);
+    formDataToSend.append('landmark', formData.landmark);
+    formDataToSend.append('issueType', formData.issueType);
+    formDataToSend.append('description', formData.description);
+    formDataToSend.append('severity', formData.severity);
+    formDataToSend.append('latitude', position[0]);
+    formDataToSend.append('longitude', position[1]);
+    
+    if (selectedFile) {
+      formDataToSend.append('image', selectedFile);
+    }
 
     try {
-      // Submit to backend API
+      // Submit to backend API using FormData
       const response = await fetch(`${API_URL}/complaints`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(complaintData),
+        body: formDataToSend,
       });
 
-      const data = await response.json();
+      const responseData = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error?.message || 'Failed to submit complaint');
+        throw new Error(responseData.error?.message || 'Failed to submit complaint');
       }
 
       // Set the complaint ID from the API response
-      setIssueId(data.data.complaintId);
+      setIssueId(responseData.data.complaintId);
 
       // Also save to localStorage for LiveMap compatibility
       const existing = JSON.parse(localStorage.getItem('civicfix_issues') || '[]');
       const newIssue = {
-        id: data.data.complaintId,
-        title: data.data.issueType,
-        description: data.data.description,
-        area: data.data.area,
-        city: data.data.city,
-        severity: data.data.severity,
-        status: data.data.status,
+        id: responseData.data.complaintId,
+        title: responseData.data.issueType,
+        description: responseData.data.description,
+        area: responseData.data.area,
+        city: responseData.data.city,
+        severity: responseData.data.severity,
+        status: responseData.data.status,
         position,
-        submittedAt: data.data.createdAt,
+        submittedAt: responseData.data.createdAt,
       };
       localStorage.setItem('civicfix_issues', JSON.stringify([...existing, newIssue]));
 
@@ -121,6 +130,7 @@ const ReportIssueModal = ({ isOpen, onClose }) => {
 
   const resetForm = () => {
     setIsSubmitted(false);
+    setSelectedFile(null);
     onClose();
   };
 
@@ -157,17 +167,17 @@ const ReportIssueModal = ({ isOpen, onClose }) => {
                 <div className="form-group grid-2">
                   <div>
                     <label>Full Name</label>
-                    <input type="text" name="fullName" value={formData.fullName} onChange={handleChange} placeholder="John Doe" />
+                    <input type="text" name="fullName" value={formData.fullName} onChange={handleChange} placeholder="John Doe" data-guide-id="full-name" />
                   </div>
                   <div>
                     <label>Phone Number <span className="required">*</span></label>
-                    <input type="tel" name="phone" value={formData.phone} onChange={handleChange} placeholder="+1 234 567 8900" required />
+                    <input type="tel" name="phone" value={formData.phone} onChange={handleChange} placeholder="+1 234 567 8900" required data-guide-id="phone-input" />
                   </div>
                 </div>
                 <div className="form-group grid-2">
                   <div>
                     <label>Email ID</label>
-                    <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="john@example.com" />
+                    <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="john@example.com" data-guide-id="email-input" />
                   </div>
                   <div>
                     <label>Preferred Language</label>
@@ -185,21 +195,21 @@ const ReportIssueModal = ({ isOpen, onClose }) => {
                 <h3 className="section-heading">Location Details</h3>
                 <div className="form-group">
                   <label>Share Google Maps Link (Best Option)</label>
-                  <input type="url" name="mapsLink" value={formData.mapsLink} onChange={handleChange} placeholder="https://maps.google.com/..." />
+                  <input type="url" name="mapsLink" value={formData.mapsLink} onChange={handleChange} placeholder="https://maps.google.com/..." data-guide-id="maps-link" />
                 </div>
                 <div className="form-group grid-2">
                   <div>
                     <label>Area / Locality Name</label>
-                    <input type="text" name="area" value={formData.area} onChange={handleChange} placeholder="Downtown" />
+                    <input type="text" name="area" value={formData.area} onChange={handleChange} placeholder="Downtown" data-guide-id="area-input" />
                   </div>
                   <div>
                     <label>City</label>
-                    <input type="text" name="city" value={formData.city} onChange={handleChange} placeholder="Metropolis" />
+                    <input type="text" name="city" value={formData.city} onChange={handleChange} placeholder="Metropolis" data-guide-id="city-input" />
                   </div>
                 </div>
                 <div className="form-group">
                   <label>Landmark (Optional)</label>
-                  <input type="text" name="landmark" value={formData.landmark} onChange={handleChange} placeholder="Near Central Park" />
+                  <input type="text" name="landmark" value={formData.landmark} onChange={handleChange} placeholder="Near Central Park" data-guide-id="landmark-input" />
                 </div>
               </div>
 
@@ -207,7 +217,7 @@ const ReportIssueModal = ({ isOpen, onClose }) => {
                 <h3 className="section-heading">Issue Details</h3>
                 <div className="form-group">
                   <label>Type of Issue</label>
-                  <select name="issueType" value={formData.issueType} onChange={handleChange} required>
+                  <select name="issueType" value={formData.issueType} onChange={handleChange} required data-guide-id="issue-type">
                     <option value="">Select an issue type...</option>
                     <option>Pothole</option>
                     <option>Garbage overflow</option>
@@ -220,16 +230,22 @@ const ReportIssueModal = ({ isOpen, onClose }) => {
                 </div>
                 <div className="form-group">
                   <label>Describe the Problem</label>
-                  <textarea name="description" value={formData.description} onChange={handleChange} rows="4" placeholder="Describe what the issue is, how long it exists, and how it affects people..."></textarea>
+                  <textarea name="description" value={formData.description} onChange={handleChange} rows="4" placeholder="Describe what the issue is, how long it exists, and how it affects people..." data-guide-id="description"></textarea>
                 </div>
                 <div className="form-group">
                   <label>Upload Photo(s) of the Issue</label>
                   <div className="file-upload-zone">
-                    <input type="file" multiple accept="image/*" className="file-input" />
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      className="file-input" 
+                      data-guide-id="file-upload" 
+                      onChange={handleFileChange}
+                    />
                     <div className="file-upload-content">
-                      <Upload size={24} className="text-muted" />
-                      <span>Click to upload images</span>
-                      <small className="text-muted">Accepts images only</small>
+                      <Upload size={24} className={selectedFile ? "text-secondary" : "text-muted"} />
+                      <span>{selectedFile ? selectedFile.name : "Click to upload images"}</span>
+                      <small className="text-muted">{selectedFile ? `${(selectedFile.size / 1024 / 1024).toFixed(2)} MB` : "Accepts images only"}</small>
                     </div>
                   </div>
                 </div>
@@ -239,7 +255,7 @@ const ReportIssueModal = ({ isOpen, onClose }) => {
                 <h3 className="section-heading">Additional Context</h3>
                 <div className="form-group">
                   <label>How serious is the issue?</label>
-                  <div className="radio-group">
+                  <div className="radio-group" data-guide-id="severity-input">
                     <label className="radio-label">
                       <input type="radio" name="severity" value="low" checked={formData.severity === 'low'} onChange={handleChange} /> Low (minor inconvenience)
                     </label>
@@ -253,19 +269,19 @@ const ReportIssueModal = ({ isOpen, onClose }) => {
                 </div>
                 <div className="form-group">
                   <label>How long has this issue existed?</label>
-                  <input type="text" name="duration" value={formData.duration} onChange={handleChange} placeholder="e.g., 2 weeks, 3 months" />
+                  <input type="text" name="duration" value={formData.duration} onChange={handleChange} placeholder="e.g., 2 weeks, 3 months" data-guide-id="duration-input" />
                 </div>
                 <div className="form-group grid-2 mb-4">
                   <div>
                     <label>Allow nearby volunteers to help?</label>
-                    <div className="inline-radio-group">
+                    <div className="inline-radio-group" data-guide-id="volunteer-input">
                       <label><input type="radio" name="volunteer" value="yes" checked={formData.volunteer === 'yes'} onChange={handleChange} /> Yes</label>
                       <label><input type="radio" name="volunteer" value="no" checked={formData.volunteer === 'no'} onChange={handleChange} /> No</label>
                     </div>
                   </div>
                   <div>
                     <label>Want updates on this issue?</label>
-                    <div className="inline-radio-group">
+                    <div className="inline-radio-group" data-guide-id="updates-input">
                       <label><input type="radio" name="updates" value="yes" checked={formData.updates === 'yes'} onChange={handleChange} /> Yes (SMS/WhatsApp)</label>
                       <label><input type="radio" name="updates" value="no" checked={formData.updates === 'no'} onChange={handleChange} /> No</label>
                     </div>
@@ -275,7 +291,7 @@ const ReportIssueModal = ({ isOpen, onClose }) => {
 
               <div className="form-actions">
                 <label className="consent-checkbox">
-                  <input type="checkbox" required />
+                  <input type="checkbox" required data-guide-id="consent-input" />
                   <span>I verify that the information provided is accurate and consent to its use for resolution purposes.</span>
                 </label>
                 {error && (
@@ -287,6 +303,7 @@ const ReportIssueModal = ({ isOpen, onClose }) => {
                   type="submit"
                   className="btn btn-primary btn-submit"
                   disabled={submitting}
+                  data-guide-id="submit-report"
                 >
                   {submitting ? 'Submitting...' : 'Submit Report'}
                 </button>

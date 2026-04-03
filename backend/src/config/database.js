@@ -1,21 +1,55 @@
-const { Pool } = require('pg');
-require('dotenv').config();
+const Database = require('better-sqlite3');
+const path = require('path');
+const fs = require('fs');
 
-const pool = new Pool({
-    host: process.env.DB_HOST || 'localhost',
-    port: process.env.DB_PORT || 5432,
-    database: process.env.DB_NAME || 'CivicFix',
-    user: process.env.DB_USER || 'postgres',
-    password: process.env.DB_PASSWORD || 'jan12bn072008',
-});
+// Create a local SQLite database file
+const dbPath = path.join(__dirname, '../../civicfix.sqlite');
 
-// Test connection
-pool.on('connect', () => {
-    console.log('Connected to PostgreSQL database');
-});
+// Initialize the database
+const db = new Database(dbPath, { verbose: console.log });
 
-pool.on('error', (err) => {
-    console.error('PostgreSQL connection error:', err);
-});
+// Emulate a pg-pool-like interface for minimal changes in other files
+const pool = {
+    /**
+     * Executes a query against the SQLite database.
+     * Automatically converts $1, $2 style parameters to ? for compatibility.
+     */
+    query: async (text, params = []) => {
+        try {
+            // Convert PostgreSQL style parameters ($1, $2) to SQLite style (?)
+            const sqliteText = text.replace(/\$\d+/g, '?');
+            
+            const stmt = db.prepare(sqliteText);
+            
+            // For SELECT queries
+            if (sqliteText.trim().toUpperCase().startsWith('SELECT')) {
+                const rows = stmt.all(params);
+                return { rows, rowCount: rows.length };
+            }
+            
+            // For INSERT/UPDATE/DELETE with RETURNING
+            if (sqliteText.toUpperCase().includes('RETURNING')) {
+                // SQLite 3.35+ supports RETURNING
+                const rows = stmt.all(params);
+                return { rows, rowCount: rows.length };
+            }
+            
+            // For other operations (CREATE TABLE, etc.)
+            const result = stmt.run(params);
+            return { rows: [], rowCount: result.changes, lastInsertRowid: result.lastInsertRowid };
+        } catch (err) {
+            console.error('SQLite Query Error:', err);
+            throw err;
+        }
+    },
+    
+    // Add event listeners for compatibility
+    on: (event, callback) => {
+        if (event === 'connect') {
+            console.log('Connected to SQLite database at:', dbPath);
+            callback();
+        }
+    }
+};
 
 module.exports = pool;
