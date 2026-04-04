@@ -6,10 +6,17 @@ import { API_BASE } from '../services/api';
 
 const geocodeAddress = async (area, city) => {
   const query = `${area}, ${city}`;
-  const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`);
-  const data = await res.json();
-  if (data && data.length > 0) {
-    return [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`);
+    if (!res.ok) throw new Error(`Geocoding service returned status ${res.status}`);
+    const data = await res.json();
+    if (data && data.length > 0) {
+      return [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+    }
+    console.log('No geocoding results for:', query);
+  } catch (err) {
+    console.error('Geocoding Error:', err);
+    throw new Error(`Location lookup failed: ${err.message}. Please check your internet or retry.`);
   }
   return null;
 };
@@ -49,24 +56,30 @@ const ReportIssueModal = ({ isOpen, onClose }) => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     setSubmitting(true);
     setError(null);
 
     // Try to geocode the area + city into coordinates
     let position = null;
-    if (formData.area || formData.city) {
-      position = await geocodeAddress(formData.area, formData.city);
-    }
+    try {
+      if (formData.area || formData.city) {
+        position = await geocodeAddress(formData.area, formData.city);
+      }
 
-    // Fallback: parse Google Maps link for coordinates
-    if (!position && formData.mapsLink) {
-      const match = formData.mapsLink.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
-      if (match) position = [parseFloat(match[1]), parseFloat(match[2])];
+      // Fallback: parse Google Maps link for coordinates
+      if (!position && formData.mapsLink) {
+        const match = formData.mapsLink.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+        if (match) position = [parseFloat(match[1]), parseFloat(match[2])];
+      }
+    } catch (err) {
+      setError(err.message);
+      setSubmitting(false);
+      return;
     }
 
     if (!position) {
-      alert('Could not detect location. Please enter a valid Area/City or Google Maps link.');
+      setError('Could not detect location. Please enter a valid Area/City or Google Maps link.');
       setSubmitting(false);
       return;
     }
@@ -108,7 +121,7 @@ const ReportIssueModal = ({ isOpen, onClose }) => {
         if (responseData.error?.details && Array.isArray(responseData.error.details)) {
           throw new Error(`${responseData.error.message}: ${responseData.error.details.join(', ')}`);
         }
-        throw new Error(responseData.error?.message || 'Failed to submit complaint');
+        throw new Error(responseData.error?.message || 'The server rejected your submission.');
       }
 
       // Set the complaint ID from the API response
@@ -134,8 +147,12 @@ const ReportIssueModal = ({ isOpen, onClose }) => {
 
       setIsSubmitted(true);
     } catch (err) {
-      setError(err.message);
-      alert(`Error submitting complaint: ${err.message}`);
+      console.error('Submission Error:', err);
+      // Specifically handle the "Load failed" type error
+      const msg = err.message === 'Load failed' || err.message === 'Failed to fetch'
+        ? "Network Error: Could not reach the server (Port 3000). Please ensure backend is running." 
+        : err.message;
+      setError(msg);
     } finally {
       setSubmitting(false);
     }

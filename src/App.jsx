@@ -34,7 +34,7 @@ function App() {
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   return (
     <Router>
-      <Navbar />
+      <Navbar onOpenReport={() => setIsReportModalOpen(true)} />
 
       <Routes>
         <Route path="/" element={<Home onOpenReport={() => setIsReportModalOpen(true)} />} />

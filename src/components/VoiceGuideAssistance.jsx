@@ -125,11 +125,20 @@ const VoiceGuideAssistant = () => {
         if (!isRunning) return;
         if (!('speechSynthesis' in window)) return;
 
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(step.text);
-        utterance.rate = 1.1; 
-        utterance.pitch = 1;
-        window.speechSynthesis.speak(utterance);
+        // 🎙️ Robust Speech Manager
+        const speak = () => {
+            window.speechSynthesis.cancel();
+            
+            // Short delay to ensure browser speech engine is ready after cancel
+            setTimeout(() => {
+                const utterance = new SpeechSynthesisUtterance(step.text);
+                utterance.rate = 1.1; 
+                utterance.pitch = 1;
+                window.speechSynthesis.speak(utterance);
+            }, 150);
+        };
+
+        speak();
     }, [isRunning, step]);
 
     useEffect(() => {
@@ -137,12 +146,14 @@ const VoiceGuideAssistant = () => {
         if (!('speechSynthesis' in window)) return;
 
         window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(
-            'The guide is now complete. You can track your complaint status anytime from the top menu.'
-        );
-        utterance.rate = 1;
-        utterance.pitch = 1;
-        window.speechSynthesis.speak(utterance);
+        setTimeout(() => {
+            const utterance = new SpeechSynthesisUtterance(
+                'The guide is now complete. You can track your complaint status anytime from the top menu.'
+            );
+            utterance.rate = 1;
+            utterance.pitch = 1;
+            window.speechSynthesis.speak(utterance);
+        }, 150);
     }, [isCompleted]);
 
     useEffect(() => {
@@ -208,12 +219,28 @@ const VoiceGuideAssistant = () => {
             advanceStep();
         };
 
+        // 🕵️ Success Monitor
+        // If we are on the Submit step, we wait for the success screen to appear
+        let successInterval = null;
+        if (step.id === 'submit-report') {
+            successInterval = setInterval(() => {
+                const successEl = document.querySelector('[data-guide-id="issue-id-display"]');
+                if (successEl) {
+                    clearInterval(successInterval);
+                    completeStep();
+                }
+            }, 500);
+        }
+
         const handleKeyDown = (e) => {
             if (e.key === 'Enter') {
                 const target = document.querySelector(step.selector);
                 
                 if (step.id !== 'submit-report') {
                     e.preventDefault();
+                } else {
+                    // Don't auto-advance on Enter for submit. Wait for Success Monitor.
+                    return;
                 }
 
                 // Validation checks
@@ -236,13 +263,6 @@ const VoiceGuideAssistant = () => {
                     }
                 }
 
-                // Handle post-submit logic
-                if (step.id === 'submit-report') {
-                    // Give the backend some time to process before checking for the success screen
-                    setTimeout(completeStep, 1500); 
-                    return;
-                }
-
                 completeStep();
             }
         };
@@ -252,8 +272,12 @@ const VoiceGuideAssistant = () => {
             if (!target) return;
 
             // Handle selection-based steps (No Enter required)
-            if (['volunteer-input', 'updates-input'].includes(step.id)) {
+            if (['severity-input', 'volunteer-input', 'updates-input'].includes(step.id)) {
                 if (e.target.type === 'radio' && target.contains(e.target)) {
+                    setTimeout(completeStep, 300);
+                }
+            } else if (step.id === 'issue-type') {
+                if (e.target.tagName === 'SELECT' && target === e.target) {
                     setTimeout(completeStep, 300);
                 }
             } else if (step.id === 'consent-input') {
@@ -261,13 +285,10 @@ const VoiceGuideAssistant = () => {
                     setTimeout(completeStep, 300);
                 }
             } else if (target.contains(e.target)) {
-                if (['report-button', 'submit-report', 'track-link'].includes(step.id)) {
-                    if (step.id === 'submit-report') {
-                        setTimeout(completeStep, 1500);
-                    } else {
-                        completeStep();
-                    }
+                if (['report-button', 'track-link'].includes(step.id)) {
+                    completeStep();
                 }
+                // Submit button (Step 18) is handled by the Success Monitor above
             }
         };
 
@@ -276,6 +297,7 @@ const VoiceGuideAssistant = () => {
         window.addEventListener('change', handleClickOrChange);
 
         return () => {
+            if (successInterval) clearInterval(successInterval);
             window.removeEventListener('keydown', handleKeyDown);
             window.removeEventListener('click', handleClickOrChange);
             window.removeEventListener('change', handleClickOrChange);
