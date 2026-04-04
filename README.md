@@ -40,6 +40,7 @@ First, ensure you have Node.js installed.
    npm run dev
    ```
 
+Open `http://localhost:5173` to view it in the browser.
 4. Start the backend server:
    ```bash
    cd backend
