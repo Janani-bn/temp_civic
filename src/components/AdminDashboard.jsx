@@ -13,7 +13,9 @@ import {
     ChevronUp,
     Building2,
     Search,
-    X
+    X,
+    TrendingUp,
+    Users
 } from 'lucide-react';
 import './AdminDashboard.css';
 
@@ -67,7 +69,15 @@ const AdminDashboard = () => {
                 throw new Error(data.error?.message || 'Failed to fetch complaints');
             }
 
-            setComplaints(data.data);
+            // Sort by supporter count (High Demand first) and then by date
+            const sortedComplaints = data.data.sort((a, b) => {
+                const aCount = a.supporter_count || 1;
+                const bCount = b.supporter_count || 1;
+                if (bCount !== aCount) return bCount - aCount;
+                return new Date(b.created_at) - new Date(a.created_at);
+            });
+
+            setComplaints(sortedComplaints);
         } catch (err) {
             setError(err.message);
         } finally {
@@ -279,6 +289,13 @@ const AdminDashboard = () => {
                                         {getStatusIcon(complaint.status)}
                                         <span>{complaint.status}</span>
                                     </div>
+
+                                    {(complaint.supporter_count > 1) && (
+                                        <div className="department-tag" style={{ backgroundColor: '#fef2f2', color: '#ef4444', borderColor: '#fca5a5' }}>
+                                            <TrendingUp className="dept-icon" size={16} />
+                                            <span style={{ fontWeight: 600 }}>High Demand ({complaint.supporter_count})</span>
+                                        </div>
+                                    )}
 
                                     <div className="department-tag">
                                         <Building2 className="dept-icon" />
