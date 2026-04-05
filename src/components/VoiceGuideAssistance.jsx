@@ -286,6 +286,14 @@ const VoiceGuideAssistant = () => {
         };
 
         const handleClickOrChange = (e) => {
+            // Handle skipping recommendations automatically
+            if (step.id === 'recommendation-title' && e.type === 'click') {
+                if (e.target.closest && e.target.closest('[data-guide-id="report-new-issue"]')) {
+                    completeStep();
+                    return;
+                }
+            }
+
             const target = document.querySelector(step.selector);
             if (!target) return;
 
