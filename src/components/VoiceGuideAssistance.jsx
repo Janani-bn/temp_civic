@@ -114,6 +114,7 @@ const VoiceGuideAssistant = () => {
     const [isRunning, setIsRunning] = useState(false);
     const [stepIndex, setStepIndex] = useState(0);
     const [isCompleted, setIsCompleted] = useState(false);
+    const [isJoinedFlow, setIsJoinedFlow] = useState(false);
     const [pointerPos, setPointerPos] = useState({ top: 0, left: 0, visible: false });
 
     const step = useMemo(() => STEPS[stepIndex], [stepIndex]);
@@ -134,8 +135,17 @@ const VoiceGuideAssistant = () => {
         // Cancel previous speech immediately
         window.speechSynthesis.cancel();
 
+        let textToSpeak = step.text;
+        if (isJoinedFlow) {
+            if (step.id === 'issue-id-display') {
+                textToSpeak = "You have successfully joined the complaint. This is the shared unique code. Please copy it now if you wish to track it.";
+            } else if (step.id === 'track-link') {
+                textToSpeak = "Click 'Track Status' in the menu above anytime to check for updates. The guide is now complete.";
+            }
+        }
+
         // Speak without async delay to preserve browser's "user gesture" token
-        const utterance = new SpeechSynthesisUtterance(step.text);
+        const utterance = new SpeechSynthesisUtterance(textToSpeak);
         utterance.rate = 1.0; 
         utterance.pitch = 1;
         
@@ -321,10 +331,19 @@ const VoiceGuideAssistant = () => {
             setIsRunning(false);
             setIsCompleted(true);
         };
+        
+        const handleJoinedSuccess = () => {
+            setIsJoinedFlow(true);
+            // Index 19 is 'issue-id-display'
+            setStepIndex(19);
+        };
+
         window.addEventListener('civicfix:stop-guide', handleStop);
+        window.addEventListener('civicfix:guide-jump-to-joined-success', handleJoinedSuccess);
 
         return () => {
             window.removeEventListener('civicfix:stop-guide', handleStop);
+            window.removeEventListener('civicfix:guide-jump-to-joined-success', handleJoinedSuccess);
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
             }
@@ -334,6 +353,7 @@ const VoiceGuideAssistant = () => {
     const startGuide = () => {
         setStepIndex(0);
         setIsCompleted(false);
+        setIsJoinedFlow(false);
         setIsRunning(true);
     };
 

@@ -140,15 +140,8 @@ const ReportIssueModal = ({ isOpen, onClose }) => {
       setIsSubmitted(true);
       setView('success');
 
-      // Voice AI integration for joining
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-        const msg = new SpeechSynthesisUtterance("You have successfully joined the complaint. Your support has been added. You can view its progress in your profile under the joined reports tab.");
-        msg.rate = 1.0;
-        window.speechSynthesis.speak(msg);
-      }
-      // Stop the voice guide if it's running
-      window.dispatchEvent(new Event('civicfix:stop-guide'));
+      // Trigger voice guide to jump to success step
+      window.dispatchEvent(new Event('civicfix:guide-jump-to-joined-success'));
 
       // Notify My Complaints page to refresh and show the joined entry
       window.dispatchEvent(new Event('civicfix:complaint-joined'));
@@ -300,7 +293,7 @@ const ReportIssueModal = ({ isOpen, onClose }) => {
                 <h2 className="text-2xl font-bold mb-2">Thank you for joining!</h2>
                 <p className="text-muted mb-6">Your issue code is: <strong data-guide-id="issue-id-display" style={{ padding: '0 4px', background: '#e0f2fe', borderRadius: '4px' }}>{issueId}</strong></p>
                 <p className="text-sm text-muted mb-8">
-                  Your support has been added to this existing report. You do not need to track this manually; you can view its progress anytime in your Profile under the <strong>Joined Reports</strong> tab.
+                  Your support has been added to this existing report. Please copy the code above and visit the track page to check for updates, or view its progress anytime in your Profile under the <strong>Joined Reports</strong> tab.
                 </p>
               </>
             ) : (
