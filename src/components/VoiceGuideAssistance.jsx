@@ -6,102 +6,107 @@ const STEPS = [
     {
         id: 'report-button',
         selector: '[data-guide-id="report-button"]',
-        text: 'Step 1. Starting the guide. Please click the blue "Report an Issue" button to open the form.',
+        text: 'Step 1. Starting the guide. Please click the blue "Report an Issue" button to open the dashboard.',
+    },
+    {
+        id: 'recommendation-title',
+        selector: '[data-guide-id="recommendation-title"]',
+        text: 'Step 2. Smart Duplicate Check. We found some similar issues in your area. Is your problem the same as any of these? If yes, click "Yes, Join This" to add your voice. If you are not joining this, click "No, Report a Different Issue" to proceed.',
     },
     {
         id: 'full-name',
         selector: '[data-guide-id="full-name"]',
-        text: 'Step 2. Personal details. Type your full name and press Enter.',
+        text: 'Step 3. Personal details. Type your full name and press Enter.',
     },
     {
         id: 'phone-input',
         selector: '[data-guide-id="phone-input"]',
-        text: 'Step 3. Enter your 10-digit mobile number and press Enter.',
+        text: 'Step 4. Enter your 10-digit mobile number and press Enter.',
     },
     {
         id: 'email-input',
         selector: '[data-guide-id="email-input"]',
-        text: 'Step 4. Enter your email address and press Enter.',
+        text: 'Step 5. Enter your email address and press Enter.',
     },
     {
         id: 'language-input',
         selector: '[data-guide-id="language-input"]',
-        text: 'Step 5. Select your preferred language from the list and press Enter.',
+        text: 'Step 6. Select your preferred language from the list and press Enter.',
     },
     {
         id: 'maps-link',
         selector: '[data-guide-id="maps-link"]',
-        text: 'Step 6. Location. If you have a Google Maps link, paste it here, or just press Enter to skip.',
+        text: 'Step 7. Location. If you have a Google Maps link, paste it here, or just press Enter to skip.',
     },
     {
         id: 'area-input',
         selector: '[data-guide-id="area-input"]',
-        text: 'Step 7. Type the name of your area or locality and press Enter.',
+        text: 'Step 8. Type the name of your area or locality and press Enter.',
     },
     {
         id: 'city-input',
         selector: '[data-guide-id="city-input"]',
-        text: 'Step 8. Type the name of your city and press Enter.',
+        text: 'Step 9. Type the name of your city and press Enter.',
     },
     {
         id: 'landmark-input',
         selector: '[data-guide-id="landmark-input"]',
-        text: 'Step 9. Enter a nearby landmark (optional) and press Enter.',
+        text: 'Step 10. Enter a nearby landmark (optional) and press Enter.',
     },
     {
         id: 'issue-type',
         selector: '[data-guide-id="issue-type"]',
-        text: 'Step 10. Issue details. Select the type of problem you are reporting and press Enter.',
+        text: 'Step 11. Issue details. Select the type of problem you are reporting and press Enter.',
     },
     {
         id: 'description',
         selector: '[data-guide-id="description"]',
-        text: 'Step 11. Describe the problem in your own words so we understand it better. Press Enter when done.',
+        text: 'Step 12. Describe the problem in your own words so we understand it better. Press Enter when done.',
     },
     {
         id: 'file-upload',
         selector: '[data-guide-id="file-upload"]',
-        text: 'Step 12. Upload a photo of the issue (optional). Once selected, or to skip, press Enter.',
+        text: 'Step 13. Upload a photo of the issue (optional). Once selected, or to skip, press Enter.',
     },
     {
         id: 'severity-input',
         selector: '[data-guide-id="severity-input"]',
-        text: 'Step 13. How serious is the issue? Select an option by clicking on it.',
+        text: 'Step 14. How serious is the issue? Select an option by clicking on it.',
     },
     {
         id: 'duration-input',
         selector: '[data-guide-id="duration-input"]',
-        text: 'Step 14. How long has this issue existed? Enter duration and press Enter.',
+        text: 'Step 15. How long has this issue existed? Enter duration and press Enter.',
     },
     {
         id: 'volunteer-input',
         selector: '[data-guide-id="volunteer-input"]',
-        text: 'Step 15. Allow nearby volunteers to help? Select Yes or No.',
+        text: 'Step 16. Allow nearby volunteers to help? Select Yes or No.',
     },
     {
         id: 'updates-input',
         selector: '[data-guide-id="updates-input"]',
-        text: 'Step 16. Want updates on this issue? Select Yes or No.',
+        text: 'Step 17. Want updates on this issue? Select Yes or No.',
     },
     {
         id: 'consent-input',
         selector: '[data-guide-id="consent-input"]',
-        text: 'Step 17. Almost there. Check the box to verify your information.',
+        text: 'Step 18. Almost there. Check the box to verify your information.',
     },
     {
         id: 'submit-report',
         selector: '[data-guide-id="submit-report"]',
-        text: 'Step 18. Final step. Click "Submit Report" or press Enter to send your request.',
+        text: 'Step 19. Final step. Click "Submit Report" or press Enter to send your request.',
     },
     {
         id: 'issue-id-display',
         selector: '[data-guide-id="issue-id-display"]',
-        text: 'Step 19. Your complaint has been recorded. This is your unique code. Please copy it now.',
+        text: 'Step 20. Your complaint has been recorded. This is your unique code. Please copy it now.',
     },
     {
         id: 'track-link',
         selector: '[data-guide-id="track-link"]',
-        text: 'Step 20. Last step. Click "Track Status" in the menu above anytime to check for updates. The guide is now complete.',
+        text: 'Step 21. Last step. Click "Track Status" in the menu above anytime to check for updates. The guide is now complete.',
     },
 ];
 
@@ -109,6 +114,7 @@ const VoiceGuideAssistant = () => {
     const [isRunning, setIsRunning] = useState(false);
     const [stepIndex, setStepIndex] = useState(0);
     const [isCompleted, setIsCompleted] = useState(false);
+    const [isJoinedFlow, setIsJoinedFlow] = useState(false);
     const [pointerPos, setPointerPos] = useState({ top: 0, left: 0, visible: false });
 
     const step = useMemo(() => STEPS[stepIndex], [stepIndex]);
@@ -129,8 +135,17 @@ const VoiceGuideAssistant = () => {
         // Cancel previous speech immediately
         window.speechSynthesis.cancel();
 
+        let textToSpeak = step.text;
+        if (isJoinedFlow) {
+            if (step.id === 'issue-id-display') {
+                textToSpeak = "You have successfully joined the complaint. This is the shared unique code. Please copy it now if you wish to track it.";
+            } else if (step.id === 'track-link') {
+                textToSpeak = "Click 'Track Status' in the menu above anytime to check for updates. The guide is now complete.";
+            }
+        }
+
         // Speak without async delay to preserve browser's "user gesture" token
-        const utterance = new SpeechSynthesisUtterance(step.text);
+        const utterance = new SpeechSynthesisUtterance(textToSpeak);
         utterance.rate = 1.0; 
         utterance.pitch = 1;
         
@@ -271,6 +286,14 @@ const VoiceGuideAssistant = () => {
         };
 
         const handleClickOrChange = (e) => {
+            // Handle skipping recommendations automatically
+            if (step.id === 'recommendation-title' && e.type === 'click') {
+                if (e.target.closest && e.target.closest('[data-guide-id="report-new-issue"]')) {
+                    completeStep();
+                    return;
+                }
+            }
+
             const target = document.querySelector(step.selector);
             if (!target) return;
 
@@ -309,7 +332,26 @@ const VoiceGuideAssistant = () => {
     }, [isRunning, step, isLastStep]);
 
     useEffect(() => {
+        const handleStop = () => {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+            }
+            setIsRunning(false);
+            setIsCompleted(true);
+        };
+        
+        const handleJoinedSuccess = () => {
+            setIsJoinedFlow(true);
+            // Index 19 is 'issue-id-display'
+            setStepIndex(19);
+        };
+
+        window.addEventListener('civicfix:stop-guide', handleStop);
+        window.addEventListener('civicfix:guide-jump-to-joined-success', handleJoinedSuccess);
+
         return () => {
+            window.removeEventListener('civicfix:stop-guide', handleStop);
+            window.removeEventListener('civicfix:guide-jump-to-joined-success', handleJoinedSuccess);
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
             }
@@ -319,6 +361,7 @@ const VoiceGuideAssistant = () => {
     const startGuide = () => {
         setStepIndex(0);
         setIsCompleted(false);
+        setIsJoinedFlow(false);
         setIsRunning(true);
     };
 

@@ -209,6 +209,79 @@ class Complaint {
     }
 
     /**
+     * Join an existing complaint (increment supporter count & record the join)
+     * @param {number} id - Complaint internal ID
+     * @param {number|null} userId - User's internal ID (null if anonymous)
+     * @param {string|null} sessionId - Anonymous session ID for tracking
+     * @returns {Object} Updated complaint
+     */
+    static async join(id, userId = null, sessionId = null) {
+        const query = `
+            UPDATE complaints
+            SET supporter_count = supporter_count + 1, updated_at = CURRENT_TIMESTAMP
+            WHERE id = $1
+            RETURNING *
+        `;
+        const result = await pool.query(query, [id]);
+        const complaint = result.rows[0] || null;
+
+        if (complaint) {
+            // Record who joined so it appears in My Complaints
+            await pool.query(
+                `INSERT INTO complaint_joins (complaint_id, user_id, session_id) VALUES ($1, $2, $3)`,
+                [id, userId, sessionId]
+            );
+        }
+
+        return complaint;
+    }
+
+    /**
+     * Get all complaints that a user has joined (for My Complaints page)
+     * @param {number} userId
+     * @returns {Array}
+     */
+    static async getJoinedByUser(userId) {
+        const query = `
+            SELECT
+                c.*,
+                cj.joined_at,
+                'joined' AS relation_type
+            FROM complaint_joins cj
+            JOIN complaints c ON c.id = cj.complaint_id
+            WHERE cj.user_id = $1
+            ORDER BY cj.joined_at DESC
+        `;
+        const result = await pool.query(query, [userId]);
+        return result.rows;
+    }
+
+    /**
+     * Get grouped duplicate complaints for admin (where 2+ people reported same issue type in same area)
+     * @returns {Array}
+     */
+    static async getGroupedDuplicates() {
+        const query = `
+            SELECT
+                issue_type,
+                area,
+                city,
+                COUNT(*) AS report_count,
+                SUM(supporter_count) AS total_supporters,
+                MAX(severity) AS highest_severity,
+                MIN(created_at) AS first_reported,
+                MAX(created_at) AS last_reported,
+                GROUP_CONCAT(complaint_id, ', ') AS complaint_ids
+            FROM complaints
+            GROUP BY LOWER(issue_type), LOWER(area), LOWER(city)
+            HAVING COUNT(*) >= 2
+            ORDER BY report_count DESC, total_supporters DESC
+        `;
+        const result = await pool.query(query);
+        return result.rows;
+    }
+
+    /**
      * Delete complaint
      * @param {number} id - Complaint internal ID
      * @returns {boolean} Success status
