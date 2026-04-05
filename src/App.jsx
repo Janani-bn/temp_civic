@@ -13,6 +13,7 @@ import MyComplaints from './components/MyComplaints';
 import NearbyComplaints from './components/NearbyComplaints';
 import ProtectedRoute from './components/ProtectedRoute';
 import LiveFeed from './components/LiveFeed';
+import VolunteerDashboard from './components/volunteerdashboard';
 
 import { useState } from 'react';
 import './App.css';
@@ -35,7 +36,6 @@ function App() {
   return (
     <Router>
       <Navbar onOpenReport={() => setIsReportModalOpen(true)} />
-
       <Routes>
         <Route path="/" element={<Home onOpenReport={() => setIsReportModalOpen(true)} />} />
         <Route path="/feed" element={<LiveFeed />} />
@@ -64,6 +64,14 @@ function App() {
           element={
             <ProtectedRoute requiredRole="admin">
               <AdminDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/volunteer"
+          element={
+            <ProtectedRoute requiredRole="volunteer">
+              <VolunteerDashboard />
             </ProtectedRoute>
           }
         />
