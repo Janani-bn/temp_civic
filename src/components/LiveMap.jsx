@@ -1,5 +1,12 @@
 import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
+import { API_BASE } from "../services/api";
+import { useEffect, useState, useCallback } from "react";
+
+const getColor = (severity) => {
+    const s = String(severity || "").toLowerCase();
+    if (s === "high") return "red";
+    if (s === "medium") return "orange";
 import { useEffect, useState, useCallback } from "react";
 
 const getColor = (severity) => {
@@ -24,6 +31,63 @@ const LiveMap = () => {
     const [userLocation, setUserLocation] = useState(null);
     const [locationError, setLocationError] = useState(null);
     const [locating, setLocating] = useState(false);
+
+    // Load reports from both API (backend) and localStorage (immediate local)
+    const loadReports = useCallback(async () => {
+        let apiReports = [];
+        try {
+            const res = await fetch(`${API_BASE}/complaints`);
+            const data = await res.json();
+            if (res.ok) apiReports = data.data || [];
+        } catch (err) {
+            console.error("Failed to fetch reports from API:", err);
+        }
+
+        const localReports = JSON.parse(localStorage.getItem("reports") || "[]");
+        
+        // Merge them, avoiding duplicates by complaint ID
+        const merged = [...apiReports];
+        const apiIds = new Set(apiReports.map(r => r.complaint_id || r.id));
+        
+        localReports.forEach(r => {
+            const id = r.complaint_id || r.id;
+            if (id && !apiIds.has(id)) {
+                merged.push(r);
+            }
+        });
+
+        // Normalize lat/lng property names
+        const normalized = merged.map(r => ({
+            ...r,
+            lat: r.latitude || r.lat,
+            lng: r.longitude || r.lng,
+            issueType: r.issue_type || r.issueType || "Unknown",
+            place: r.area ? `${r.area}, ${r.city}` : (r.place || "Unknown"),
+            severity: r.severity || "Low",
+            status: r.status || "Pending",
+            date: r.created_at ? new Date(r.created_at).toLocaleDateString() : (r.date || "Today")
+        })).filter(r => r.lat && r.lng);
+
+        setReports(normalized);
+    }, []);
+
+    useEffect(() => {
+        loadReports();
+        
+        // Listen for new reports from the modal in the same tab
+        window.addEventListener('civicfix:complaint-created', loadReports);
+        
+        // Refresh periodically for reports from other users
+        const interval = setInterval(loadReports, 10000);
+        
+        return () => {
+            window.removeEventListener('civicfix:complaint-created', loadReports);
+            clearInterval(interval);
+        };
+    }, [loadReports]);
+
+    // Auto-request location on mount
+    useEffect(() => {
 
     // Load reports from localStorage — runs on mount and re-syncs every 3 seconds
     const loadReports = useCallback(() => {
