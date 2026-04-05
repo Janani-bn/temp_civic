@@ -7,6 +7,11 @@ const getColor = (severity) => {
     const s = String(severity || "").toLowerCase();
     if (s === "high") return "red";
     if (s === "medium") return "orange";
+import { useEffect, useState, useCallback } from "react";
+
+const getColor = (severity) => {
+    if (severity === "High") return "red";
+    if (severity === "Medium") return "orange";
     return "green";
 };
 
@@ -79,6 +84,21 @@ const LiveMap = () => {
             window.removeEventListener('civicfix:complaint-created', loadReports);
             clearInterval(interval);
         };
+    }, [loadReports]);
+
+    // Auto-request location on mount
+    useEffect(() => {
+
+    // Load reports from localStorage — runs on mount and re-syncs every 3 seconds
+    const loadReports = useCallback(() => {
+        const stored = JSON.parse(localStorage.getItem("reports")) || [];
+        setReports(stored);
+    }, []);
+
+    useEffect(() => {
+        loadReports();
+        const interval = setInterval(loadReports, 3000);
+        return () => clearInterval(interval);
     }, [loadReports]);
 
     // Auto-request location on mount
