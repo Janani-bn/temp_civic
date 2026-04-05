@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Upload, CheckCircle, MapPin } from 'lucide-react';
 import './ReportIssueModal.css';
 import { useAuth } from '../context/AuthContext';
@@ -21,7 +21,7 @@ const geocodeAddress = async (area, city) => {
   return null;
 };
 
-const ReportIssueModal = ({ isOpen, onClose }) => {
+const ReportIssueModal = ({ isOpen, onClose, prefillData }) => {
   const { token } = useAuth();
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [issueId, setIssueId] = useState('');
@@ -44,6 +44,21 @@ const ReportIssueModal = ({ isOpen, onClose }) => {
     volunteer: 'yes',
     updates: 'yes',
   });
+
+  // Apply prefill data when modal opens with AI data
+  useEffect(() => {
+    if (isOpen && prefillData) {
+      setFormData(prev => ({
+        ...prev,
+        issueType: prefillData.issueType || prev.issueType,
+        description: prefillData.description || prev.description,
+        severity: prefillData.severity || prev.severity,
+        area: prefillData.area || prev.area,
+        city: prefillData.city || prev.city,
+        landmark: prefillData.landmark || prev.landmark,
+      }));
+    }
+  }, [isOpen, prefillData]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
