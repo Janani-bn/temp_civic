@@ -57,6 +57,23 @@ const getComplaintsByUser = async (req, res, next) => {
 };
 
 /**
+ * Get complaints that the user has joined (for My Complaints page)
+ * GET /complaints/joined
+ */
+const getJoinedComplaints = async (req, res, next) => {
+    try {
+        const complaints = await Complaint.getJoinedByUser(req.user.id);
+        res.json({
+            success: true,
+            count: complaints.length,
+            data: complaints
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+/**
  * Get complaints within a radius (nearby dashboard)
  * GET /complaints/nearby?lat=...&lng=...&radiusKm=...
  */
@@ -249,7 +266,11 @@ const joinComplaint = async (req, res, next) => {
             throw error;
         }
 
-        const complaint = await Complaint.join(internalId);
+        // Track who joined (null if anonymous)
+        const userId = req.user?.id || null;
+        const sessionId = req.headers['x-session-id'] || null;
+
+        const complaint = await Complaint.join(internalId, userId, sessionId);
 
         if (!complaint) {
             const error = new Error('Complaint not found');
@@ -266,14 +287,32 @@ const joinComplaint = async (req, res, next) => {
     }
 };
 
+/**
+ * Get grouped duplicate complaints for admin dashboard
+ * GET /complaints/grouped-duplicates
+ */
+const getGroupedDuplicates = async (req, res, next) => {
+    try {
+        const groups = await Complaint.getGroupedDuplicates();
+        res.json({
+            success: true,
+            count: groups.length,
+            data: groups
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
 module.exports = {
     createComplaint,
     getComplaintsByUser,
+    getJoinedComplaints,
     getNearbyComplaints,
     getComplaintById,
     getAllComplaints,
     updateComplaintStatus,
     assignComplaint,
     joinComplaint,
-    deleteComplaint
+    getGroupedDuplicates
 };

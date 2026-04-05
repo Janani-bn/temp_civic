@@ -6,11 +6,12 @@ const {
     getComplaintById,
     getAllComplaints,
     getComplaintsByUser,
+    getJoinedComplaints,
     getNearbyComplaints,
     updateComplaintStatus,
     assignComplaint,
     joinComplaint,
-    deleteComplaint
+    getGroupedDuplicates
 } = require('../controllers/complaintController');
 
 const {
@@ -30,8 +31,14 @@ router.post('/', upload.single('image'), authenticateOptional, validateComplaint
 // 2. GET /complaints/user - List complaints for current user
 router.get('/user', authenticate, getComplaintsByUser);
 
+// GET /complaints/joined - List complaints the user has joined
+router.get('/joined', authenticate, getJoinedComplaints);
+
 // 3. GET /complaints/nearby - Nearby complaints for volunteer dashboard
 router.get('/nearby', getNearbyComplaints);
+
+// Admin: GET /complaints/grouped-duplicates - complaints grouped by area+type (count >= 2)
+router.get('/grouped-duplicates', getGroupedDuplicates);
 
 // 4. GET /complaints/:id - Fetch complaint details
 router.get('/:id', getComplaintById);
@@ -49,7 +56,5 @@ router.post('/:id/join', joinComplaint);
 // (Note: This is mounted at /api/assign in server.js)
 router.post('/assign', validateDepartmentAssignment, assignComplaint);
 
-// 8. Admin: Delete complaint
-router.delete('/:id', deleteComplaint);
 
 module.exports = router;

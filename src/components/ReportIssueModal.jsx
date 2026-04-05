@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Upload, CheckCircle, MapPin, Users } from 'lucide-react';
 import './ReportIssueModal.css';
 import { useAuth } from '../context/AuthContext';
@@ -24,6 +24,7 @@ const geocodeAddress = async (area, city) => {
 const ReportIssueModal = ({ isOpen, onClose }) => {
   const { token } = useAuth();
   const [view, setView] = useState('form'); // 'recommendation', 'form', 'success'
+  const [successType, setSuccessType] = useState('created'); // 'created' or 'joined'
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [issueId, setIssueId] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -126,19 +127,31 @@ const ReportIssueModal = ({ isOpen, onClose }) => {
   const handleJoin = async (issueId) => {
     setSubmitting(true);
     try {
-      const res = await fetch(`${API_BASE}/complaints/${issueId}/join`, { method: 'POST' });
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const res = await fetch(`${API_BASE}/complaints/${issueId}/join`, {
+        method: 'POST',
+        headers,
+      });
       if (!res.ok) throw new Error('Failed to join issue');
       
       const data = await res.json();
       setIssueId(data.data.complaint_id);
+      setSuccessType('joined');
       setIsSubmitted(true);
       setView('success');
+
+      // Trigger voice guide to jump to success step
+      window.dispatchEvent(new Event('civicfix:guide-jump-to-joined-success'));
+
+      // Notify My Complaints page to refresh and show the joined entry
+      window.dispatchEvent(new Event('civicfix:complaint-joined'));
     } catch (err) {
       setError(err.message);
     } finally {
       setSubmitting(false);
     }
   };
+
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -240,6 +253,7 @@ const ReportIssueModal = ({ isOpen, onClose }) => {
       // Notify other pages (My Profile) to refresh immediately
       window.dispatchEvent(new Event('civicfix:complaint-created'));
 
+      setSuccessType('created');
       setIsSubmitted(true);
       setView('success');
     } catch (err) {
@@ -273,11 +287,25 @@ const ReportIssueModal = ({ isOpen, onClose }) => {
         {view === 'success' ? (
           <div className="success-state text-center">
             <CheckCircle size={64} className="text-secondary mx-auto mb-4" />
-            <h2 className="text-2xl font-bold mb-2">Thank you for reporting!</h2>
-            <p className="text-muted mb-6">Your issue code is: <strong data-guide-id="issue-id-display" style={{ padding: '0 4px', background: '#e0f2fe', borderRadius: '4px' }}>{issueId}</strong></p>
-            <p className="text-sm text-muted mb-8">
-              Your complaint has been recorded and updated. Please copy the code above and visit the track page to check for updates.
-            </p>
+            
+            {successType === 'joined' ? (
+              <>
+                <h2 className="text-2xl font-bold mb-2">Thank you for joining!</h2>
+                <p className="text-muted mb-6">Your issue code is: <strong data-guide-id="issue-id-display" style={{ padding: '0 4px', background: '#e0f2fe', borderRadius: '4px' }}>{issueId}</strong></p>
+                <p className="text-sm text-muted mb-8">
+                  Your support has been added to this existing report. Please copy the code above and visit the track page to check for updates, or view its progress anytime in your Profile under the <strong>Joined Reports</strong> tab.
+                </p>
+              </>
+            ) : (
+              <>
+                <h2 className="text-2xl font-bold mb-2">Thank you for reporting!</h2>
+                <p className="text-muted mb-6">Your issue code is: <strong data-guide-id="issue-id-display" style={{ padding: '0 4px', background: '#e0f2fe', borderRadius: '4px' }}>{issueId}</strong></p>
+                <p className="text-sm text-muted mb-8">
+                  Your complaint has been recorded and updated. Please copy the code above and visit the track page to check for updates.
+                </p>
+              </>
+            )}
+            
             <button className="btn btn-primary" onClick={resetForm}>Close Window</button>
           </div>
         ) : view === 'recommendation' ? (
