@@ -24,6 +24,7 @@ const geocodeAddress = async (area, city) => {
 const ReportIssueModal = ({ isOpen, onClose }) => {
   const { token } = useAuth();
   const [view, setView] = useState('form'); // 'recommendation', 'form', 'success'
+  const [successType, setSuccessType] = useState('created'); // 'created' or 'joined'
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [issueId, setIssueId] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -135,8 +136,19 @@ const ReportIssueModal = ({ isOpen, onClose }) => {
       
       const data = await res.json();
       setIssueId(data.data.complaint_id);
+      setSuccessType('joined');
       setIsSubmitted(true);
       setView('success');
+
+      // Voice AI integration for joining
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const msg = new SpeechSynthesisUtterance("You have successfully joined the complaint. Your support has been added. You can view its progress in your profile under the joined reports tab.");
+        msg.rate = 1.0;
+        window.speechSynthesis.speak(msg);
+      }
+      // Stop the voice guide if it's running
+      window.dispatchEvent(new Event('civicfix:stop-guide'));
 
       // Notify My Complaints page to refresh and show the joined entry
       window.dispatchEvent(new Event('civicfix:complaint-joined'));
@@ -248,6 +260,7 @@ const ReportIssueModal = ({ isOpen, onClose }) => {
       // Notify other pages (My Profile) to refresh immediately
       window.dispatchEvent(new Event('civicfix:complaint-created'));
 
+      setSuccessType('created');
       setIsSubmitted(true);
       setView('success');
     } catch (err) {
@@ -281,11 +294,25 @@ const ReportIssueModal = ({ isOpen, onClose }) => {
         {view === 'success' ? (
           <div className="success-state text-center">
             <CheckCircle size={64} className="text-secondary mx-auto mb-4" />
-            <h2 className="text-2xl font-bold mb-2">Thank you for reporting!</h2>
-            <p className="text-muted mb-6">Your issue code is: <strong data-guide-id="issue-id-display" style={{ padding: '0 4px', background: '#e0f2fe', borderRadius: '4px' }}>{issueId}</strong></p>
-            <p className="text-sm text-muted mb-8">
-              Your complaint has been recorded and updated. Please copy the code above and visit the track page to check for updates.
-            </p>
+            
+            {successType === 'joined' ? (
+              <>
+                <h2 className="text-2xl font-bold mb-2">Thank you for joining!</h2>
+                <p className="text-muted mb-6">Your issue code is: <strong data-guide-id="issue-id-display" style={{ padding: '0 4px', background: '#e0f2fe', borderRadius: '4px' }}>{issueId}</strong></p>
+                <p className="text-sm text-muted mb-8">
+                  Your support has been added to this existing report. You do not need to track this manually; you can view its progress anytime in your Profile under the <strong>Joined Reports</strong> tab.
+                </p>
+              </>
+            ) : (
+              <>
+                <h2 className="text-2xl font-bold mb-2">Thank you for reporting!</h2>
+                <p className="text-muted mb-6">Your issue code is: <strong data-guide-id="issue-id-display" style={{ padding: '0 4px', background: '#e0f2fe', borderRadius: '4px' }}>{issueId}</strong></p>
+                <p className="text-sm text-muted mb-8">
+                  Your complaint has been recorded and updated. Please copy the code above and visit the track page to check for updates.
+                </p>
+              </>
+            )}
+            
             <button className="btn btn-primary" onClick={resetForm}>Close Window</button>
           </div>
         ) : view === 'recommendation' ? (

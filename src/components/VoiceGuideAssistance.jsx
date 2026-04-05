@@ -11,7 +11,7 @@ const STEPS = [
     {
         id: 'recommendation-title',
         selector: '[data-guide-id="recommendation-title"]',
-        text: 'Step 2. Smart Duplicate Check. We found some similar issues in your area. Is your problem the same as any of these? If yes, click "Yes, Join This" to add your support. If no, click "Report a Different Issue" at the bottom to continue.',
+        text: 'Step 2. Smart Duplicate Check. We found some similar issues in your area. Is your problem the same as any of these? If yes, click "Yes, Join This" to add your voice. If you are not joining this, click "No, Report a Different Issue" to proceed.',
     },
     {
         id: 'full-name',
@@ -314,7 +314,17 @@ const VoiceGuideAssistant = () => {
     }, [isRunning, step, isLastStep]);
 
     useEffect(() => {
+        const handleStop = () => {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+            }
+            setIsRunning(false);
+            setIsCompleted(true);
+        };
+        window.addEventListener('civicfix:stop-guide', handleStop);
+
         return () => {
+            window.removeEventListener('civicfix:stop-guide', handleStop);
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
             }
