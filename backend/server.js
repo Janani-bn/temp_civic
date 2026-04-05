@@ -6,7 +6,6 @@ require('dotenv').config();
 const complaintRoutes = require('./src/routes/complaints');
 const authRoutes = require('./src/routes/auth');
 const commentRoutes = require('./src/routes/comments');
-const aiRoutes = require('./src/routes/ai');
 
 // Import middleware
 const { errorHandler, notFoundHandler } = require('./src/middleware/errorHandler');
@@ -45,9 +44,6 @@ app.use('/api/auth', authRoutes);
 
 // Comments routes
 app.use('/api/comments', commentRoutes);
-
-// AI routes
-app.use('/api/ai', aiRoutes);
 
 // 2. POST /assign - Assign complaint to department
 // Mounted directly as per architecture spec

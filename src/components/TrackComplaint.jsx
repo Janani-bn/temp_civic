@@ -1,28 +1,19 @@
-import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useState } from 'react';
 import { Search, AlertCircle, CheckCircle, Clock, MapPin, Phone, User, Calendar } from 'lucide-react';
 import './TrackComplaint.css';
 
 import { API_BASE } from '../services/api';
 
 const TrackComplaint = () => {
-    const [searchParams] = useSearchParams();
     const [complaintId, setComplaintId] = useState('');
     const [complaint, setComplaint] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    useEffect(() => {
-        const idFromUrl = searchParams.get('id');
-        if (idFromUrl && !complaintId) {
-            setComplaintId(idFromUrl);
-            searchById(idFromUrl);
-        }
-    }, [searchParams]);
+    const handleSearch = async (e) => {
+        e.preventDefault();
 
-    const searchById = async (id) => {
-        const searchId = (id || complaintId).trim();
-        if (!searchId) {
+        if (!complaintId.trim()) {
             setError('Please enter a complaint ID');
             return;
         }
@@ -32,7 +23,7 @@ const TrackComplaint = () => {
         setComplaint(null);
 
         try {
-            const response = await fetch(`${API_BASE}/complaints/${searchId}`);
+            const response = await fetch(`${API_BASE}/complaints/${complaintId.trim()}`);
             const data = await response.json();
 
             if (!response.ok) {
@@ -45,11 +36,6 @@ const TrackComplaint = () => {
         } finally {
             setLoading(false);
         }
-    };
-
-    const handleSearch = async (e) => {
-        e.preventDefault();
-        searchById();
     };
 
     const getStatusIcon = (status) => {
@@ -134,6 +120,17 @@ const TrackComplaint = () => {
                                         </div>
                                     </div>
                                 </div>
+
+                                {complaint.image_url && (
+                                    <div className="info-section">
+                                        <h3>Evidence Photo</h3>
+                                        <img 
+                                            src={`http://localhost:3000${complaint.image_url}`} 
+                                            alt="Uploaded issue proof" 
+                                            style={{ width: '100%', maxWidth: '400px', borderRadius: '12px', border: '1px solid #ddd', marginTop: '8px' }}
+                                        />
+                                    </div>
+                                )}
 
                                 <div className="info-section">
                                     <h3>Description</h3>

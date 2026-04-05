@@ -14,9 +14,7 @@ import NearbyComplaints from './components/NearbyComplaints';
 import ProtectedRoute from './components/ProtectedRoute';
 import LiveFeed from './components/LiveFeed';
 
-import AIChatbot from './components/AIChatbot';
-
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import './App.css';
 
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
@@ -34,16 +32,9 @@ function Home({ onOpenReport }) {
 
 function App() {
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
-  const [aiPrefillData, setAiPrefillData] = useState(null);
-
-  const handleAIPrefill = useCallback((data) => {
-    setAiPrefillData(data);
-    setIsReportModalOpen(true);
-  }, []);
-
   return (
     <Router>
-      <Navbar />
+      <Navbar onOpenReport={() => setIsReportModalOpen(true)} />
 
       <Routes>
         <Route path="/" element={<Home onOpenReport={() => setIsReportModalOpen(true)} />} />
@@ -82,11 +73,9 @@ function App() {
 
       <ReportIssueModal
         isOpen={isReportModalOpen}
-        onClose={() => { setIsReportModalOpen(false); setAiPrefillData(null); }}
-        prefillData={aiPrefillData}
+        onClose={() => setIsReportModalOpen(false)}
       />
       <VoiceGuideAssistant />
-      <AIChatbot onPrefillReport={handleAIPrefill} />
     </Router>
 
   );

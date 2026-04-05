@@ -23,10 +23,7 @@ const HeroSection = ({ onOpenReport }) => {
           <div className="hero-cta">
             <button
               className="btn btn-primary btn-lg"
-              onClick={() => {
-                if (token) onOpenReport();
-                else navigate('/signup');
-              }}
+              onClick={onOpenReport}
               data-guide-id="report-button"
             >
               Report an Issue Now

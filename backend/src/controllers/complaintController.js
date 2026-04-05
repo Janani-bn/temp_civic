@@ -1,6 +1,5 @@
 const Complaint = require('../models/Complaint');
 const { routeToDepartment } = require('../utils/departmentRouter');
-const whatsapp = require('../services/whatsappService');
 
 /**
  * Create a new complaint
@@ -18,10 +17,6 @@ const createComplaint = async (req, res, next) => {
 
         // Create complaint (auto-generates ID and assigns department)
         const complaint = await Complaint.create(complaintData, req.user?.id || null);
-
-        if (complaint.whatsapp_opt_in) {
-            whatsapp.notifyComplaintCreated(complaint).catch(() => {});
-        }
 
         res.status(201).json({
             success: true,
@@ -175,10 +170,6 @@ const updateComplaintStatus = async (req, res, next) => {
             const error = new Error('Complaint not found');
             error.statusCode = 404;
             throw error;
-        }
-
-        if (complaint.whatsapp_opt_in && complaint.phone) {
-            whatsapp.notifyStatusUpdate(complaint, status).catch(() => {});
         }
 
         res.json({

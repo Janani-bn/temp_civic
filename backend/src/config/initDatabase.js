@@ -14,6 +14,9 @@ const initDatabase = async () => {
             issue_type TEXT NOT NULL,
             description TEXT NOT NULL,
             severity TEXT DEFAULT 'medium',
+            duration TEXT,
+            allow_volunteers TEXT DEFAULT 'no',
+            want_updates TEXT DEFAULT 'no',
             image_url TEXT,
             latitude REAL,
             longitude REAL,
@@ -59,9 +62,6 @@ const initDatabase = async () => {
         const existingColumnNames = (columnsInfo.rows || []).map((c) => c.name);
         if (!existingColumnNames.includes('user_id')) {
             await pool.query('ALTER TABLE complaints ADD COLUMN user_id INTEGER');
-        }
-        if (!existingColumnNames.includes('whatsapp_opt_in')) {
-            await pool.query("ALTER TABLE complaints ADD COLUMN whatsapp_opt_in INTEGER DEFAULT 0");
         }
         
         // SQLite doesn't support IF NOT EXISTS for CREATE INDEX before version 3.27

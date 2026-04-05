@@ -41,15 +41,6 @@ First, ensure you have Node.js installed.
    ```
 
 Open `http://localhost:5173` to view it in the browser.
-4. Start the backend server:
-   ```bash
-   cd backend
-   npm install
-   npm run dev
-   ```
-
-5. Open `http://localhost:5173` to view it in the browser.
-
 ## AI Chatbot Setup
 
 CivicFix includes an AI-powered chatbot (powered by Google Gemini) that helps citizens report issues and track complaints through natural conversation.

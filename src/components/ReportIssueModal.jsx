@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { X, Upload, CheckCircle, MapPin } from 'lucide-react';
 import './ReportIssueModal.css';
 import { useAuth } from '../context/AuthContext';
@@ -6,22 +6,28 @@ import { API_BASE } from '../services/api';
 
 const geocodeAddress = async (area, city) => {
   const query = `${area}, ${city}`;
-  const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`);
-  const data = await res.json();
-  if (data && data.length > 0) {
-    return [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`);
+    if (!res.ok) throw new Error(`Geocoding service returned status ${res.status}`);
+    const data = await res.json();
+    if (data && data.length > 0) {
+      return [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+    }
+    console.log('No geocoding results for:', query);
+  } catch (err) {
+    console.error('Geocoding Error:', err);
+    throw new Error(`Location lookup failed: ${err.message}. Please check your internet or retry.`);
   }
   return null;
 };
 
-const ReportIssueModal = ({ isOpen, onClose, prefillData }) => {
+const ReportIssueModal = ({ isOpen, onClose }) => {
   const { token } = useAuth();
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [issueId, setIssueId] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
-  const [aiPrefilled, setAiPrefilled] = useState(false);
   const [formData, setFormData] = useState({
     fullName: '',
     phone: '',
@@ -39,21 +45,6 @@ const ReportIssueModal = ({ isOpen, onClose, prefillData }) => {
     updates: 'yes',
   });
 
-  useEffect(() => {
-    if (prefillData && isOpen) {
-      setFormData(prev => ({
-        ...prev,
-        issueType: prefillData.issueType || prev.issueType,
-        area: prefillData.area || prev.area,
-        city: prefillData.city || prev.city,
-        landmark: prefillData.landmark || prev.landmark,
-        severity: prefillData.severity || prev.severity,
-        description: prefillData.description || prev.description,
-      }));
-      setAiPrefilled(true);
-    }
-  }, [prefillData, isOpen]);
-
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -65,24 +56,30 @@ const ReportIssueModal = ({ isOpen, onClose, prefillData }) => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     setSubmitting(true);
     setError(null);
 
     // Try to geocode the area + city into coordinates
     let position = null;
-    if (formData.area || formData.city) {
-      position = await geocodeAddress(formData.area, formData.city);
-    }
+    try {
+      if (formData.area || formData.city) {
+        position = await geocodeAddress(formData.area, formData.city);
+      }
 
-    // Fallback: parse Google Maps link for coordinates
-    if (!position && formData.mapsLink) {
-      const match = formData.mapsLink.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
-      if (match) position = [parseFloat(match[1]), parseFloat(match[2])];
+      // Fallback: parse Google Maps link for coordinates
+      if (!position && formData.mapsLink) {
+        const match = formData.mapsLink.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+        if (match) position = [parseFloat(match[1]), parseFloat(match[2])];
+      }
+    } catch (err) {
+      setError(err.message);
+      setSubmitting(false);
+      return;
     }
 
     if (!position) {
-      alert('Could not detect location. Please enter a valid Area/City or Google Maps link.');
+      setError('Could not detect location. Please enter a valid Area/City or Google Maps link.');
       setSubmitting(false);
       return;
     }
@@ -98,10 +95,12 @@ const ReportIssueModal = ({ isOpen, onClose, prefillData }) => {
     formDataToSend.append('issueType', formData.issueType);
     formDataToSend.append('description', formData.description);
     formDataToSend.append('severity', formData.severity);
+    formDataToSend.append('duration', formData.duration);
+    formDataToSend.append('allowVolunteers', formData.volunteer);
+    formDataToSend.append('wantUpdates', formData.updates);
     formDataToSend.append('latitude', position[0]);
     formDataToSend.append('longitude', position[1]);
-    formDataToSend.append('whatsappOptIn', formData.updates === 'yes' ? 'true' : 'false');
-
+    
     if (selectedFile) {
       formDataToSend.append('image', selectedFile);
     }
@@ -118,34 +117,45 @@ const ReportIssueModal = ({ isOpen, onClose, prefillData }) => {
       const responseData = await response.json();
 
       if (!response.ok) {
-        throw new Error(responseData.error?.message || 'Failed to submit complaint');
+        // If there are specific validation details, join them into a readable message
+        if (responseData.error?.details && Array.isArray(responseData.error.details)) {
+          throw new Error(`${responseData.error.message}: ${responseData.error.details.join(', ')}`);
+        }
+        throw new Error(responseData.error?.message || 'The server rejected your submission.');
       }
 
       // Set the complaint ID from the API response
       setIssueId(responseData.data.complaintId);
 
       // Also save to localStorage for LiveMap compatibility
-      const existing = JSON.parse(localStorage.getItem('civicfix_issues') || '[]');
+      const existing = JSON.parse(localStorage.getItem('reports') || '[]');
       const newIssue = {
         id: responseData.data.complaintId,
-        title: responseData.data.issueType,
+        issueType: responseData.data.issueType,
         description: responseData.data.description,
         area: responseData.data.area,
         city: responseData.data.city,
-        severity: responseData.data.severity,
+        place: `${responseData.data.area}, ${responseData.data.city}`,
+        severity: responseData.data.severity === 'high' ? 'High' : (responseData.data.severity === 'medium' ? 'Medium' : 'Low'),
         status: responseData.data.status,
-        position,
+        latitude: position[0],
+        longitude: position[1],
+        date: new Date().toLocaleDateString(),
         submittedAt: responseData.data.createdAt,
       };
-      localStorage.setItem('civicfix_issues', JSON.stringify([...existing, newIssue]));
+      localStorage.setItem('reports', JSON.stringify([...existing, newIssue]));
 
       // Notify other pages (My Profile) to refresh immediately
       window.dispatchEvent(new Event('civicfix:complaint-created'));
 
       setIsSubmitted(true);
     } catch (err) {
-      setError(err.message);
-      alert(`Error submitting complaint: ${err.message}`);
+      console.error('Submission Error:', err);
+      // Specifically handle the "Load failed" type error
+      const msg = err.message === 'Load failed' || err.message === 'Failed to fetch'
+        ? "Network Error: Could not reach the server (Port 3000). Please ensure backend is running." 
+        : err.message;
+      setError(msg);
     } finally {
       setSubmitting(false);
     }
@@ -154,7 +164,6 @@ const ReportIssueModal = ({ isOpen, onClose, prefillData }) => {
   const resetForm = () => {
     setIsSubmitted(false);
     setSelectedFile(null);
-    setAiPrefilled(false);
     onClose();
   };
 
@@ -171,10 +180,9 @@ const ReportIssueModal = ({ isOpen, onClose, prefillData }) => {
           <div className="success-state text-center">
             <CheckCircle size={64} className="text-secondary mx-auto mb-4" />
             <h2 className="text-2xl font-bold mb-2">Thank you for reporting!</h2>
-            <p className="text-muted mb-6">Your issue ID is: <strong>{issueId}</strong></p>
+            <p className="text-muted mb-6">Your issue code is: <strong data-guide-id="issue-id-display" style={{ padding: '0 4px', background: '#e0f2fe', borderRadius: '4px' }}>{issueId}</strong></p>
             <p className="text-sm text-muted mb-8">
-              We have received your report and notified the relevant department.
-              {formData.updates === 'yes' && ' You will receive status updates on WhatsApp.'}
+              Your complaint has been recorded and updated. Please copy the code above and visit the track page to check for updates.
             </p>
             <button className="btn btn-primary" onClick={resetForm}>Close Window</button>
           </div>
@@ -183,12 +191,6 @@ const ReportIssueModal = ({ isOpen, onClose, prefillData }) => {
             <div className="modal-header">
               <h2>Report an Issue</h2>
               <p className="text-muted text-sm">Help us fix the community by reporting local problems.</p>
-              {aiPrefilled && (
-                <div className="ai-prefill-banner">
-                  <span className="ai-prefill-badge">AI</span>
-                  Some fields were pre-filled by CivicFix AI. Please review before submitting.
-                </div>
-              )}
             </div>
 
             <form onSubmit={handleSubmit} className="report-form">
@@ -212,7 +214,7 @@ const ReportIssueModal = ({ isOpen, onClose, prefillData }) => {
                   </div>
                   <div>
                     <label>Preferred Language</label>
-                    <select name="language" value={formData.language} onChange={handleChange}>
+                    <select name="language" value={formData.language} onChange={handleChange} data-guide-id="language-input">
                       <option>English</option>
                       <option>Tamil</option>
                       <option>Hindi</option>

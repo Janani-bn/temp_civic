@@ -332,6 +332,18 @@ const AdminDashboard = () => {
                                             <div className="detail-section full-width">
                                                 <h4>Issue Description</h4>
                                                 <p>{complaint.description}</p>
+                                                
+                                                {complaint.image_url && (
+                                                    <div style={{ marginTop: '1rem', marginBottom: '1rem' }}>
+                                                        <h4 style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '0.5rem' }}>Attached Evidence</h4>
+                                                        <img 
+                                                            src={`${API_BASE.replace('/api', '')}${complaint.image_url}`} 
+                                                            alt="Complaint evidence" 
+                                                            style={{ maxWidth: '400px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
+                                                        />
+                                                    </div>
+                                                )}
+
                                                 <div className="meta-tags">
                                                     <span className={`severity-tag severity-${complaint.severity}`}>
                                                         {complaint.severity} severity
