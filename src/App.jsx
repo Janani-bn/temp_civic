@@ -10,13 +10,14 @@ import TrackComplaint from './components/TrackComplaint';
 import AdminDashboard from './components/AdminDashboard';
 import VoiceGuideAssistant from './components/VoiceGuideAssistance';
 import MyComplaints from './components/MyComplaints';
+import AIChatbot from './components/AIChatbot';
 import NearbyComplaints from './components/NearbyComplaints';
 import ProtectedRoute from './components/ProtectedRoute';
 import LiveFeed from './components/LiveFeed';
 import VolunteerDashboard from './components/volunteerdashboard';
 import LiveChatbot from './components/LiveChatbot';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import './App.css';
 
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
@@ -34,6 +35,13 @@ function Home({ onOpenReport }) {
 
 function App() {
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [aiPrefillData, setAiPrefillData] = useState(null);
+
+  const handleAIPrefill = useCallback((data) => {
+    setAiPrefillData(data);
+    setIsReportModalOpen(true);
+  }, []);
+
   const [reportPreFillData, setReportPreFillData] = useState(null);
   return (
     <Router>
@@ -83,6 +91,8 @@ function App() {
 
       <ReportIssueModal
         isOpen={isReportModalOpen}
+        onClose={() => { setIsReportModalOpen(false); setAiPrefillData(null); }}
+        prefillData={aiPrefillData}
         onClose={() => { setIsReportModalOpen(false); setReportPreFillData(null); }}
         initialData={reportPreFillData}
       />
@@ -93,6 +103,7 @@ function App() {
         }}
       />
       <VoiceGuideAssistant />
+      <AIChatbot onPrefillReport={handleAIPrefill} />
     </Router>
 
   );

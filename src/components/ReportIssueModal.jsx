@@ -22,12 +22,14 @@ const geocodeAddress = async (area, city) => {
   return null;
 };
 
+const ReportIssueModal = ({ isOpen, onClose, prefillData }) => {
 const ReportIssueModal = ({ isOpen, onClose, initialData }) => {
   const { token } = useAuth();
   const [view, setView] = useState('form'); // 'recommendation', 'form', 'success'
   const [successType, setSuccessType] = useState('created'); // 'created' or 'joined'
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [issueId, setIssueId] = useState('');
+  const [whatsappLink, setWhatsappLink] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -51,6 +53,20 @@ const ReportIssueModal = ({ isOpen, onClose, initialData }) => {
     updates: 'yes',
   });
 
+  // Apply prefill data when modal opens with AI data
+  useEffect(() => {
+    if (isOpen && prefillData) {
+      setFormData(prev => ({
+        ...prev,
+        issueType: prefillData.issueType || prev.issueType,
+        description: prefillData.description || prev.description,
+        severity: prefillData.severity || prev.severity,
+        area: prefillData.area || prev.area,
+        city: prefillData.city || prev.city,
+        landmark: prefillData.landmark || prev.landmark,
+      }));
+    }
+  }, [isOpen, prefillData]);
   // 🌍 Detect location and fetch nearby issues on open
   useEffect(() => {
     if (isOpen) {
@@ -249,8 +265,11 @@ const ReportIssueModal = ({ isOpen, onClose, initialData }) => {
         throw new Error(responseData.error?.message || 'The server rejected your submission.');
       }
 
-      // Set the complaint ID from the API response
+      // Set the complaint ID and WhatsApp link from the API response
       setIssueId(responseData.data.complaintId);
+      if (responseData.data.whatsappLink) {
+        setWhatsappLink(responseData.data.whatsappLink);
+      }
 
       // Also save to localStorage for LiveMap compatibility
       const existing = JSON.parse(localStorage.getItem('reports') || '[]');
@@ -307,6 +326,35 @@ const ReportIssueModal = ({ isOpen, onClose, initialData }) => {
         {view === 'success' ? (
           <div className="success-state text-center">
             <CheckCircle size={64} className="text-secondary mx-auto mb-4" />
+            <h2 className="text-2xl font-bold mb-2">Thank you for reporting!</h2>
+            <p className="text-muted mb-6">Your issue code is: <strong data-guide-id="issue-id-display" style={{ padding: '0 4px', background: '#e0f2fe', borderRadius: '4px' }}>{issueId}</strong></p>
+            <p className="text-sm text-muted mb-8">
+              Your complaint has been recorded and updated. Please copy the code above and visit the track page to check for updates.
+            </p>
+            
+            <div className="success-actions" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center' }}>
+              {whatsappLink && (
+                <a 
+                  href={whatsappLink} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="btn btn-secondary"
+                  style={{ 
+                    backgroundColor: '#25D366', 
+                    color: 'white', 
+                    borderColor: '#25D366',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    width: '100%',
+                    justifyContent: 'center'
+                  }}
+                >
+                   Send WhatsApp Notification
+                </a>
+              )}
+              <button className="btn btn-primary" style={{ width: '100%' }} onClick={resetForm}>Close Window</button>
+            </div>
             
             {successType === 'joined' ? (
               <>
