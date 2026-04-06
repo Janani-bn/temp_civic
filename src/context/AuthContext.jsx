@@ -42,12 +42,12 @@ export const AuthProvider = ({ children }) => {
     loadMe();
   }, [token]);
 
-  const signup = async ({ name, email, password }) => {
+  const signup = async ({ name, email, password, role = 'Citizen' }) => {
     try {
       const res = await fetch(`${API_BASE}/auth/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password })
+        body: JSON.stringify({ name, email, password, role })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error?.message || 'Signup failed');
@@ -60,8 +60,8 @@ export const AuthProvider = ({ children }) => {
       console.warn('Backend signup error. Simulating success...', err);
       return new Promise((resolve) => setTimeout(() => {
         const mockToken = 'mock-jwt-token';
-        const role = email.toLowerCase().includes('admin') ? 'admin' : 'user';
-        const mockUser = { id: 'mock-user-1', name, email, role };
+        const assignedRole = email.toLowerCase().includes('admin') ? 'admin' : role.toLowerCase();
+        const mockUser = { id: 'mock-user-1', name, email, role: assignedRole };
         localStorage.setItem('civicfix_token', mockToken);
         setToken(mockToken);
         setUser(mockUser);
