@@ -25,6 +25,7 @@ const ReportIssueModal = ({ isOpen, onClose, prefillData }) => {
   const { token } = useAuth();
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [issueId, setIssueId] = useState('');
+  const [whatsappLink, setWhatsappLink] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -139,8 +140,11 @@ const ReportIssueModal = ({ isOpen, onClose, prefillData }) => {
         throw new Error(responseData.error?.message || 'The server rejected your submission.');
       }
 
-      // Set the complaint ID from the API response
+      // Set the complaint ID and WhatsApp link from the API response
       setIssueId(responseData.data.complaintId);
+      if (responseData.data.whatsappLink) {
+        setWhatsappLink(responseData.data.whatsappLink);
+      }
 
       // Also save to localStorage for LiveMap compatibility
       const existing = JSON.parse(localStorage.getItem('reports') || '[]');
@@ -199,7 +203,30 @@ const ReportIssueModal = ({ isOpen, onClose, prefillData }) => {
             <p className="text-sm text-muted mb-8">
               Your complaint has been recorded and updated. Please copy the code above and visit the track page to check for updates.
             </p>
-            <button className="btn btn-primary" onClick={resetForm}>Close Window</button>
+            
+            <div className="success-actions" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center' }}>
+              {whatsappLink && (
+                <a 
+                  href={whatsappLink} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="btn btn-secondary"
+                  style={{ 
+                    backgroundColor: '#25D366', 
+                    color: 'white', 
+                    borderColor: '#25D366',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    width: '100%',
+                    justifyContent: 'center'
+                  }}
+                >
+                   Send WhatsApp Notification
+                </a>
+              )}
+              <button className="btn btn-primary" style={{ width: '100%' }} onClick={resetForm}>Close Window</button>
+            </div>
           </div>
         ) : (
           <>

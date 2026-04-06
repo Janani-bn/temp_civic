@@ -1,5 +1,6 @@
 const Complaint = require('../models/Complaint');
 const { routeToDepartment } = require('../utils/departmentRouter');
+const { generateWhatsAppLink } = require('../utils/whatsapp');
 
 /**
  * Create a new complaint
@@ -18,6 +19,15 @@ const createComplaint = async (req, res, next) => {
         // Create complaint (auto-generates ID and assigns department)
         const complaint = await Complaint.create(complaintData, req.user?.id || null);
 
+        // Generate WhatsApp link if phone is provided
+        const whatsappLink = generateWhatsAppLink(complaint.phone, {
+            complaintId: complaint.complaint_id,
+            issueType: complaint.issue_type,
+            area: complaint.area,
+            city: complaint.city,
+            status: complaint.status
+        });
+
         res.status(201).json({
             success: true,
             data: {
@@ -31,7 +41,8 @@ const createComplaint = async (req, res, next) => {
                 severity: complaint.severity,
                 status: complaint.status,
                 department: complaint.department,
-                createdAt: complaint.created_at
+                createdAt: complaint.created_at,
+                whatsappLink
             }
         });
     } catch (err) {
