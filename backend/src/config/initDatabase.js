@@ -22,6 +22,7 @@ const initDatabase = async () => {
             longitude REAL,
             status TEXT DEFAULT 'Pending',
             department TEXT DEFAULT 'General Administration',
+            supporter_count INTEGER DEFAULT 1,
             user_id INTEGER,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -52,10 +53,21 @@ const initDatabase = async () => {
         );
     `;
 
+    const createComplaintJoinsTableQuery = `
+        CREATE TABLE IF NOT EXISTS complaint_joins (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            complaint_id INTEGER NOT NULL,
+            user_id INTEGER,
+            session_id TEXT,
+            joined_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+    `;
+
     try {
         await pool.query(createTableQuery);
         await pool.query(createUsersTableQuery);
         await pool.query(createCommentsTableQuery);
+        await pool.query(createComplaintJoinsTableQuery);
 
         // If complaints table already existed before user_id was added, do a safe ALTER first.
         const columnsInfo = await pool.query("SELECT name FROM pragma_table_info('complaints')");
@@ -84,6 +96,8 @@ const initDatabase = async () => {
             'CREATE INDEX IF NOT EXISTS idx_complaints_complaint_id ON complaints(complaint_id)',
             'CREATE INDEX IF NOT EXISTS idx_complaints_user_id ON complaints(user_id)',
             'CREATE INDEX IF NOT EXISTS idx_comments_complaint_id ON comments(complaint_id)',
+            'CREATE INDEX IF NOT EXISTS idx_joins_complaint_id ON complaint_joins(complaint_id)',
+            'CREATE INDEX IF NOT EXISTS idx_joins_user_id ON complaint_joins(user_id)',
         ];
 
         for (const index of indices) {
