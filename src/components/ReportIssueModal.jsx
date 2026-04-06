@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { X, Upload, CheckCircle, MapPin } from 'lucide-react';
 import { X, Upload, CheckCircle, MapPin, Users } from 'lucide-react';
 import './ReportIssueModal.css';
 import { useAuth } from '../context/AuthContext';
@@ -21,7 +22,7 @@ const geocodeAddress = async (area, city) => {
   return null;
 };
 
-const ReportIssueModal = ({ isOpen, onClose }) => {
+const ReportIssueModal = ({ isOpen, onClose, initialData }) => {
   const { token } = useAuth();
   const [view, setView] = useState('form'); // 'recommendation', 'form', 'success'
   const [successType, setSuccessType] = useState('created'); // 'created' or 'joined'
@@ -157,6 +158,22 @@ const ReportIssueModal = ({ isOpen, onClose }) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  useEffect(() => {
+    if (initialData && isOpen) {
+      setFormData(prev => ({
+        ...prev,
+        issueType: initialData.issueType || prev.issueType,
+        area: initialData.area || prev.area,
+        city: initialData.city || prev.city,
+        duration: initialData.duration || prev.duration,
+        description: initialData.description || prev.description,
+        severity: initialData.severity || prev.severity,
+        email: initialData.email || prev.email,
+        phone: initialData.phone || prev.phone
+      }));
+    }
+  }, [initialData, isOpen]);
+
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files.length > 0) {
       setSelectedFile(e.target.files[0]);
@@ -208,7 +225,7 @@ const ReportIssueModal = ({ isOpen, onClose }) => {
     formDataToSend.append('wantUpdates', formData.updates);
     formDataToSend.append('latitude', position[0]);
     formDataToSend.append('longitude', position[1]);
-    
+
     if (selectedFile) {
       formDataToSend.append('image', selectedFile);
     }
@@ -263,7 +280,7 @@ const ReportIssueModal = ({ isOpen, onClose }) => {
       console.error('Submission Error:', err);
       // Specifically handle the "Load failed" type error
       const msg = err.message === 'Load failed' || err.message === 'Failed to fetch'
-        ? "Network Error: Could not reach the server (Port 3000). Please ensure backend is running." 
+        ? "Network Error: Could not reach the server (Port 3000). Please ensure backend is running."
         : err.message;
       setError(msg);
     } finally {
@@ -471,11 +488,11 @@ const ReportIssueModal = ({ isOpen, onClose }) => {
                 <div className="form-group">
                   <label>Upload Photo(s) of the Issue</label>
                   <div className="file-upload-zone">
-                    <input 
-                      type="file" 
-                      accept="image/*" 
-                      className="file-input" 
-                      data-guide-id="file-upload" 
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="file-input"
+                      data-guide-id="file-upload"
                       onChange={handleFileChange}
                     />
                     <div className="file-upload-content">
