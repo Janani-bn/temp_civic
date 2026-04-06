@@ -14,6 +14,7 @@ import NearbyComplaints from './components/NearbyComplaints';
 import ProtectedRoute from './components/ProtectedRoute';
 import LiveFeed from './components/LiveFeed';
 import VolunteerDashboard from './components/volunteerdashboard';
+import LiveChatbot from './components/LiveChatbot';
 
 import { useState } from 'react';
 import './App.css';
@@ -33,6 +34,7 @@ function Home({ onOpenReport }) {
 
 function App() {
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [reportPreFillData, setReportPreFillData] = useState(null);
   return (
     <Router>
       <Navbar onOpenReport={() => setIsReportModalOpen(true)} />
@@ -81,7 +83,14 @@ function App() {
 
       <ReportIssueModal
         isOpen={isReportModalOpen}
-        onClose={() => setIsReportModalOpen(false)}
+        onClose={() => { setIsReportModalOpen(false); setReportPreFillData(null); }}
+        initialData={reportPreFillData}
+      />
+      <LiveChatbot
+        onAutoFill={(data) => {
+          setReportPreFillData(data);
+          setIsReportModalOpen(true);
+        }}
       />
       <VoiceGuideAssistant />
     </Router>
