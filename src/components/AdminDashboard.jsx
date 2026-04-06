@@ -13,10 +13,12 @@ import {
     ChevronUp,
     Building2,
     Search,
-    X
+    X,
+    TrendingUp,
+    Users,
+    Bell
 } from 'lucide-react';
 import './AdminDashboard.css';
-
 import { API_BASE } from '../services/api';
 
 const DEPARTMENTS = [
@@ -45,6 +47,9 @@ const AdminDashboard = () => {
     });
     const [expandedComplaint, setExpandedComplaint] = useState(null);
     const [updating, setUpdating] = useState({});
+    const [activeAdminTab, setActiveAdminTab] = useState('complaints');
+    const [duplicateGroups, setDuplicateGroups] = useState([]);
+    const [duplicatesLoading, setDuplicatesLoading] = useState(false);
 
     // Fetch complaints
     const fetchComplaints = useCallback(async () => {
@@ -67,7 +72,15 @@ const AdminDashboard = () => {
                 throw new Error(data.error?.message || 'Failed to fetch complaints');
             }
 
-            setComplaints(data.data);
+            // Sort by supporter count (High Demand first) and then by date
+            const sortedComplaints = data.data.sort((a, b) => {
+                const aCount = a.supporter_count || 1;
+                const bCount = b.supporter_count || 1;
+                if (bCount !== aCount) return bCount - aCount;
+                return new Date(b.created_at) - new Date(a.created_at);
+            });
+
+            setComplaints(sortedComplaints);
         } catch (err) {
             setError(err.message);
         } finally {
@@ -78,6 +91,26 @@ const AdminDashboard = () => {
     useEffect(() => {
         fetchComplaints();
     }, [fetchComplaints]);
+
+    // Fetch grouped duplicates
+    const fetchDuplicates = useCallback(async () => {
+        setDuplicatesLoading(true);
+        try {
+            const response = await fetch(`${API_BASE}/complaints/grouped-duplicates`);
+            const data = await response.json();
+            if (response.ok) {
+                setDuplicateGroups(data.data || []);
+            }
+        } catch (err) {
+            console.error('Failed to fetch duplicates:', err);
+        } finally {
+            setDuplicatesLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchDuplicates();
+    }, [fetchDuplicates]);
 
     // Update complaint status
     const updateStatus = async (id, newStatus) => {
@@ -180,7 +213,7 @@ const AdminDashboard = () => {
                     </div>
                     <button
                         className="refresh-btn"
-                        onClick={fetchComplaints}
+                        onClick={() => { fetchComplaints(); fetchDuplicates(); }}
                         disabled={loading}
                     >
                         <RefreshCw className={`refresh-icon ${loading ? 'spinning' : ''}`} />
@@ -206,6 +239,30 @@ const AdminDashboard = () => {
                         <span className="stat-value">{complaints.filter(c => c.status === 'Resolved').length}</span>
                         <span className="stat-label">Resolved</span>
                     </div>
+                    <div className="stat-card duplicate" onClick={() => setActiveAdminTab('duplicates')} style={{ cursor: 'pointer' }}>
+                        <span className="stat-value">{duplicateGroups.length}</span>
+                        <span className="stat-label">🔁 Duplicate Groups</span>
+                    </div>
+                </div>
+
+                {/* Admin Tab Switcher */}
+                <div className="admin-tabs">
+                    <button
+                        className={`admin-tab ${activeAdminTab === 'complaints' ? 'active' : ''}`}
+                        onClick={() => setActiveAdminTab('complaints')}
+                    >
+                        All Complaints
+                    </button>
+                    <button
+                        className={`admin-tab ${activeAdminTab === 'duplicates' ? 'active' : ''}`}
+                        onClick={() => setActiveAdminTab('duplicates')}
+                    >
+                        <Bell size={16} />
+                        Duplicate Reports
+                        {duplicateGroups.length > 0 && (
+                            <span className="admin-tab-badge">{duplicateGroups.length}</span>
+                        )}
+                    </button>
                 </div>
 
                 {/* Filters */}
@@ -245,8 +302,67 @@ const AdminDashboard = () => {
                     </div>
                 )}
 
-                {/* Complaints List */}
-                <div className="complaints-list">
+                {/* =========== DUPLICATE REPORTS TAB =========== */}
+                {activeAdminTab === 'duplicates' && (
+                    <div className="duplicates-panel">
+                        <div className="duplicates-header">
+                            <Bell size={20} className="dup-header-icon" />
+                            <div>
+                                <h3>Duplicate Issue Alerts</h3>
+                                <p>These issues have been reported by 2 or more citizens in the same area. Consider prioritising them for faster resolution.</p>
+                            </div>
+                        </div>
+
+                        {duplicatesLoading ? (
+                            <div className="loading-state">
+                                <RefreshCw className="loading-icon spinning" />
+                                <p>Loading duplicate groups...</p>
+                            </div>
+                        ) : duplicateGroups.length === 0 ? (
+                            <div className="dup-empty">
+                                <span>✅</span>
+                                <p>No duplicate reports found. All issues appear to be unique!</p>
+                            </div>
+                        ) : (
+                            <div className="dup-list">
+                                {duplicateGroups.map((group, idx) => (
+                                    <div
+                                        key={idx}
+                                        className={`dup-card severity-${group.highest_severity || 'medium'}`}
+                                    >
+                                        <div className="dup-card-left">
+                                            <div className="dup-count-badge">
+                                                <Users size={18} />
+                                                <span>{group.report_count}</span>
+                                            </div>
+                                            <div className="dup-info">
+                                                <div className="dup-issue-type">{group.issue_type}</div>
+                                                <div className="dup-location">
+                                                    <MapPin size={13} />
+                                                    {group.area}, {group.city}
+                                                </div>
+                                                <div className="dup-ids">Report IDs: {group.complaint_ids}</div>
+                                            </div>
+                                        </div>
+                                        <div className="dup-card-right">
+                                            <div className="dup-stat">
+                                                <span className="dup-stat-val">{group.total_supporters || group.report_count}</span>
+                                                <span className="dup-stat-label">Total Supporters</span>
+                                            </div>
+                                            <span className={`dup-severity-badge severity-${group.highest_severity || 'medium'}`}>
+                                                {group.highest_severity || 'medium'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* =========== COMPLAINTS TAB =========== */}
+                {activeAdminTab === 'complaints' && (
+                    <div className="complaints-list">
                     {loading ? (
                         <div className="loading-state">
                             <RefreshCw className="loading-icon spinning" />
@@ -279,6 +395,13 @@ const AdminDashboard = () => {
                                         {getStatusIcon(complaint.status)}
                                         <span>{complaint.status}</span>
                                     </div>
+
+                                    {(complaint.supporter_count > 1) && (
+                                        <div className="department-tag" style={{ backgroundColor: '#fef2f2', color: '#ef4444', borderColor: '#fca5a5' }}>
+                                            <TrendingUp className="dept-icon" size={16} />
+                                            <span style={{ fontWeight: 600 }}>High Demand ({complaint.supporter_count})</span>
+                                        </div>
+                                    )}
 
                                     <div className="department-tag">
                                         <Building2 className="dept-icon" />
@@ -393,7 +516,8 @@ const AdminDashboard = () => {
                             </div>
                         ))
                     )}
-                </div>
+                    </div>
+                )}
             </div>
         </div>
     );

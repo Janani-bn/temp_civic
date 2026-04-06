@@ -57,6 +57,23 @@ const getComplaintsByUser = async (req, res, next) => {
 };
 
 /**
+ * Get complaints that the user has joined (for My Complaints page)
+ * GET /complaints/joined
+ */
+const getJoinedComplaints = async (req, res, next) => {
+    try {
+        const complaints = await Complaint.getJoinedByUser(req.user.id);
+        res.json({
+            success: true,
+            count: complaints.length,
+            data: complaints
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+/**
  * Get complaints within a radius (nearby dashboard)
  * GET /complaints/nearby?lat=...&lng=...&radiusKm=...
  */
@@ -235,23 +252,27 @@ const assignComplaint = async (req, res, next) => {
 };
 
 /**
- * Delete complaint (admin only)
- * DELETE /complaints/:id
+ * Join an existing complaint (increment supporter count)
+ * POST /complaints/:id/join
  */
-const deleteComplaint = async (req, res, next) => {
+const joinComplaint = async (req, res, next) => {
     try {
         const { id } = req.params;
         const internalId = parseInt(id, 10);
-
+        
         if (isNaN(internalId)) {
             const error = new Error('Invalid complaint ID');
             error.statusCode = 400;
             throw error;
         }
 
-        const deleted = await Complaint.delete(internalId);
+        // Track who joined (null if anonymous)
+        const userId = req.user?.id || null;
+        const sessionId = req.headers['x-session-id'] || null;
 
-        if (!deleted) {
+        const complaint = await Complaint.join(internalId, userId, sessionId);
+
+        if (!complaint) {
             const error = new Error('Complaint not found');
             error.statusCode = 404;
             throw error;
@@ -259,7 +280,24 @@ const deleteComplaint = async (req, res, next) => {
 
         res.json({
             success: true,
-            message: 'Complaint deleted successfully'
+            data: complaint
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+/**
+ * Get grouped duplicate complaints for admin dashboard
+ * GET /complaints/grouped-duplicates
+ */
+const getGroupedDuplicates = async (req, res, next) => {
+    try {
+        const groups = await Complaint.getGroupedDuplicates();
+        res.json({
+            success: true,
+            count: groups.length,
+            data: groups
         });
     } catch (err) {
         next(err);
@@ -269,10 +307,12 @@ const deleteComplaint = async (req, res, next) => {
 module.exports = {
     createComplaint,
     getComplaintsByUser,
+    getJoinedComplaints,
     getNearbyComplaints,
     getComplaintById,
     getAllComplaints,
     updateComplaintStatus,
     assignComplaint,
-    deleteComplaint
+    joinComplaint,
+    getGroupedDuplicates
 };
