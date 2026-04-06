@@ -10,7 +10,7 @@ import TrackComplaint from './components/TrackComplaint';
 import AdminDashboard from './components/AdminDashboard';
 import VoiceGuideAssistant from './components/VoiceGuideAssistance';
 import MyComplaints from './components/MyComplaints';
-import AIChatbot from './components/AIChatbot';
+import LiveChatbot from './components/LiveChatbot';
 import NearbyComplaints from './components/NearbyComplaints';
 import ProtectedRoute from './components/ProtectedRoute';
 import LiveFeed from './components/LiveFeed';
@@ -93,7 +93,7 @@ function App() {
         prefillData={aiPrefillData}
       />
       <VoiceGuideAssistant />
-      <AIChatbot onPrefillReport={handleAIPrefill} />
+      <LiveChatbot onAutoFill={handleAIPrefill} />
     </Router>
 
   );
