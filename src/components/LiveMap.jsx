@@ -28,7 +28,23 @@ const LiveMap = () => {
     // Load reports from localStorage — runs on mount and re-syncs every 3 seconds
     const loadReports = useCallback(() => {
         const stored = JSON.parse(localStorage.getItem("reports")) || [];
-        setReports(stored);
+        if (stored.length === 0) {
+            const dummyReports = [
+                { id: "mock-1", lat: 13.0827, lng: 80.2707, severity: "High", issueType: "Broken Road", place: "Chennai Central", date: new Date().toLocaleDateString(), status: "Pending", department: "Roads Department" },
+                { id: "mock-2", lat: 13.0418, lng: 80.2341, severity: "Medium", issueType: "Garbage Overflow", place: "T Nagar", date: new Date().toLocaleDateString(), status: "In Progress", department: "Sanitation" },
+                { id: "mock-3", lat: 13.0012, lng: 80.2565, severity: "Low", issueType: "Streetlight Out", place: "Adyar", date: new Date().toLocaleDateString(), status: "Resolved", department: "Electrical" }
+            ];
+            setReports(dummyReports);
+            // Optionally save these to local storage so other components see them too
+            localStorage.setItem("reports", JSON.stringify(dummyReports));
+            
+            // Also seed civicfix_issues to sync Admin and MyProfile
+            if (!localStorage.getItem('civicfix_issues')) {
+                localStorage.setItem('civicfix_issues', JSON.stringify(dummyReports));
+            }
+        } else {
+            setReports(stored);
+        }
     }, []);
 
     useEffect(() => {

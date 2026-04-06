@@ -174,9 +174,12 @@ const VoiceGuideAssistant = () => {
 
     // 📍 High-Performance Pointer Tracking
     useEffect(() => {
+        let timer;
         if (!isRunning) {
-            setPointerPos(prev => ({ ...prev, visible: false }));
-            return;
+            timer = setTimeout(() => {
+                setPointerPos(prev => ({ ...prev, visible: false }));
+            }, 0);
+            return () => clearTimeout(timer);
         }
 
         let animationFrameId;
@@ -219,6 +222,28 @@ const VoiceGuideAssistant = () => {
             document.querySelectorAll('.guide-highlight').forEach(el => el.classList.remove('guide-highlight'));
         };
     }, [isRunning, stepIndex, step.selector]);
+
+    // ⏩ Auto-skip Logic for Smart Duplicate Check
+    useEffect(() => {
+        if (!isRunning || step.id !== 'recommendation-title') return;
+
+        const skipInterval = setInterval(() => {
+            const recTitleExists = document.querySelector('[data-guide-id="recommendation-title"]');
+            const fullNameExists = document.querySelector('[data-guide-id="full-name"]');
+            
+            if (!recTitleExists && fullNameExists) {
+                setStepIndex((prev) => {
+                    if (prev >= STEPS.length - 1) return prev;
+                    if (STEPS[prev].id === 'recommendation-title') {
+                        return prev + 1;
+                    }
+                    return prev;
+                });
+            }
+        }, 500);
+
+        return () => clearInterval(skipInterval);
+    }, [isRunning, step.id]);
 
     useEffect(() => {
         if (!isRunning) return;
