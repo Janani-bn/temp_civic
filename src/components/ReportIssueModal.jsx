@@ -269,19 +269,22 @@ const ReportIssueModal = ({ isOpen, onClose }) => {
       setIssueId(responseData.data.complaintId);
 
       // Also save to localStorage for LiveMap compatibility
-      const existing = JSON.parse(localStorage.getItem('civicfix_issues') || '[]');
+      const existing = JSON.parse(localStorage.getItem('reports') || '[]');
       const newIssue = {
         id: responseData.data.complaintId,
-        title: responseData.data.issueType,
+        issueType: responseData.data.issueType,
         description: responseData.data.description,
         area: responseData.data.area,
         city: responseData.data.city,
-        severity: responseData.data.severity,
+        place: `${responseData.data.area}, ${responseData.data.city}`,
+        severity: responseData.data.severity === 'high' ? 'High' : (responseData.data.severity === 'medium' ? 'Medium' : 'Low'),
         status: responseData.data.status,
-        position,
+        latitude: position[0],
+        longitude: position[1],
+        date: new Date().toLocaleDateString(),
         submittedAt: responseData.data.createdAt,
       };
-      localStorage.setItem('civicfix_issues', JSON.stringify([...existing, newIssue]));
+      localStorage.setItem('reports', JSON.stringify([...existing, newIssue]));
 
       // Notify other pages (My Profile) to refresh immediately
       window.dispatchEvent(new Event('civicfix:complaint-created'));

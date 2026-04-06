@@ -7,7 +7,7 @@ const getJwtSecret = () => process.env.JWT_SECRET || 'dev_jwt_secret_change_me';
 
 const ADMIN_CREDENTIALS = {
     name: 'Janani Nagarajan',
-    email: 'bnajanani258@gmail.com',
+    email: 'bnjanani258@gmail.com',
     password: '123456789'
 };
 
@@ -94,8 +94,9 @@ const login = async (req, res, next) => {
         }
 
         // Admin access control (server-side).
-        // If the login matches the required admin identity AND password, promote to admin.
-        let role = user.role || 'citizen';
+        // ONLY the specific admin identity (name + email + password) gets admin role.
+        // All other users — even if their DB row says 'admin' — are downgraded to 'citizen'.
+        let role = 'citizen';
         if (isAdminLogin({ user, password })) {
             role = 'admin';
             if (user.role !== 'admin') {
@@ -133,11 +134,16 @@ const me = async (req, res, next) => {
             return res.status(404).json({ success: false, error: { message: 'User not found' } });
         }
 
+        // Enforce: only the designated admin email can have role 'admin' in responses.
+        const isDesignatedAdmin =
+            String(user.name).trim() === ADMIN_CREDENTIALS.name &&
+            String(user.email).trim().toLowerCase() === ADMIN_CREDENTIALS.email;
+
         const safeUser = {
             id: user.id,
             name: user.name,
             email: user.email,
-            role: user.role,
+            role: isDesignatedAdmin ? (user.role || 'citizen') : 'citizen',
             latitude: user.latitude,
             longitude: user.longitude,
             created_at: user.created_at,
