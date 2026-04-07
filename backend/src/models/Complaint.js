@@ -8,7 +8,7 @@ class Complaint {
      * @param {Object} complaintData - Complaint data
      * @returns {Object} Created complaint
      */
-    static async create(complaintData) {
+    static async create(complaintData, userId = null) {
         const {
             name,
             phone,
@@ -35,8 +35,8 @@ class Complaint {
                 complaint_id, name, phone, email, area, city, landmark,
                 issue_type, description, severity, duration,
                 allow_volunteers, want_updates, image_url,
-                latitude, longitude, department, status
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, 'Pending')
+                latitude, longitude, department, status, user_id
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, 'Pending', $18)
             RETURNING *
         `;
 
@@ -44,7 +44,7 @@ class Complaint {
             complaintId, name, phone, email, area, city, landmark,
             issueType, description, severity, duration,
             allowVolunteers, wantUpdates, imageUrl,
-            latitude, longitude, department
+            latitude, longitude, department, userId
         ];
 
         const result = await pool.query(query, values);
