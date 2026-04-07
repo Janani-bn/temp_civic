@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Navigation } from 'lucide-react';
-import './VoiceGuideAssistant.css';
+import './VoiceGuideAssistance.css';
 
 const STEPS_EN = [
     { id: 'report-button', selector: '[data-guide-id="report-button"]', text: 'Step 1. Starting the guide. Please click the blue "Report an Issue" button to open the dashboard.' },
