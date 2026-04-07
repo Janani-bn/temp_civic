@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { X, Upload, CheckCircle, MapPin } from 'lucide-react';
 import { X, Upload, CheckCircle, MapPin, Users } from 'lucide-react';
 import './ReportIssueModal.css';
 import { useAuth } from '../context/AuthContext';
@@ -22,8 +21,7 @@ const geocodeAddress = async (area, city) => {
   return null;
 };
 
-const ReportIssueModal = ({ isOpen, onClose, prefillData }) => {
-const ReportIssueModal = ({ isOpen, onClose, initialData }) => {
+const ReportIssueModal = ({ isOpen, onClose, prefillData, initialData }) => {
   const { token } = useAuth();
   const [view, setView] = useState('form'); // 'recommendation', 'form', 'success'
   const [successType, setSuccessType] = useState('created'); // 'created' or 'joined'
