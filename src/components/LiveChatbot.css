@@ -10,9 +10,9 @@
   font-family: 'Segoe UI', Roboto, -apple-system, sans-serif;
 }
 
-/* Toggle Button */
+/* Toggle Button (Hidden to use exclusively from Voice Guide) */
 .chatbot-toggle-btn {
-  display: flex;
+  display: none !important;
   align-items: center;
   gap: 10px;
   background: linear-gradient(135deg, #3b3fe8, #5b5ef7);
