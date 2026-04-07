@@ -171,7 +171,7 @@ const SEVERITY_OPTIONS = [
 // ============================================================
 // MAIN COMPONENT
 // ============================================================
-const LiveChatbot = ({ onAutoFill }) => {
+const LiveChatbot = ({ onAutoFill, forceOpen, onForceOpened }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
@@ -184,6 +184,13 @@ const LiveChatbot = ({ onAutoFill }) => {
   const [started, setStarted] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef(null);
+
+  useEffect(() => {
+    if (forceOpen) {
+      setIsOpen(true);
+      if (onForceOpened) onForceOpened();
+    }
+  }, [forceOpen]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -404,8 +411,8 @@ const LiveChatbot = ({ onAutoFill }) => {
     <div className="chatbot-container">
       {!isOpen ? (
         <button className="chatbot-toggle-btn animate-bounce-soft" onClick={() => setIsOpen(true)}>
-          <span style={{ fontSize: '22px', marginRight: '8px' }}>🤖</span>
-          <span>CivicFix Assistant</span>
+          <span style={{ fontSize: '22px' }}>🤖</span>
+          <span className="chatbot-toggle-label">Chat Bot</span>
         </button>
       ) : (
         <div className="chatbot-window animate-fade-in-up">

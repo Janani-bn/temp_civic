@@ -166,6 +166,18 @@ const ReportIssueModal = ({ isOpen, onClose, prefillData }) => {
   const handleJoin = async (issueId) => {
     setSubmitting(true);
     try {
+      // Mock IDs don't exist in backend — handle locally
+      if (String(issueId).startsWith('mock')) {
+        const mockComplaintId = `CMP-${Math.floor(Math.random() * 10000)}`;
+        setIssueId(mockComplaintId);
+        setSuccessType('joined');
+        setIsSubmitted(true);
+        setView('success');
+        window.dispatchEvent(new Event('civicfix:guide-jump-to-joined-success'));
+        window.dispatchEvent(new Event('civicfix:complaint-joined'));
+        return;
+      }
+
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
       const res = await fetch(`${API_BASE}/complaints/${issueId}/join`, {
         method: 'POST',
@@ -178,25 +190,19 @@ const ReportIssueModal = ({ isOpen, onClose, prefillData }) => {
       setSuccessType('joined');
       setIsSubmitted(true);
       setView('success');
-
-      // Trigger voice guide to jump to success step
       window.dispatchEvent(new Event('civicfix:guide-jump-to-joined-success'));
-
-      // Notify My Complaints page to refresh and show the joined entry
       window.dispatchEvent(new Event('civicfix:complaint-joined'));
-      setSubmitting(false);
     } catch (err) {
       console.error('Join API Error:', err);
-      // MOCK FALLBACK for UI testing without backend
-      setTimeout(() => {
-        setIssueId(issueId.startsWith('mock') ? issueId : `CMP-${Math.floor(Math.random() * 10000)}`);
-        setSuccessType('joined');
-        setIsSubmitted(true);
-        setView('success');
-        window.dispatchEvent(new Event('civicfix:guide-jump-to-joined-success'));
-        window.dispatchEvent(new Event('civicfix:complaint-joined'));
-        setSubmitting(false);
-      }, 800);
+      const mockComplaintId = `CMP-${Math.floor(Math.random() * 10000)}`;
+      setIssueId(mockComplaintId);
+      setSuccessType('joined');
+      setIsSubmitted(true);
+      setView('success');
+      window.dispatchEvent(new Event('civicfix:guide-jump-to-joined-success'));
+      window.dispatchEvent(new Event('civicfix:complaint-joined'));
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -345,6 +351,16 @@ const ReportIssueModal = ({ isOpen, onClose, prefillData }) => {
           setSuccessType('created');
           setIsSubmitted(true);
           setView('success');
+          // Voice announcement
+          if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            const msg = new SpeechSynthesisUtterance(
+              `Your complaint has been successfully submitted! Your complaint ID is ${newComplaintId}. ` +
+              `You can share this on WhatsApp or copy it to track your issue later.`
+            );
+            msg.rate = 0.95;
+            window.speechSynthesis.speak(msg);
+          }
       }, 800);
     } finally {
       setSubmitting(false);
@@ -388,8 +404,45 @@ const ReportIssueModal = ({ isOpen, onClose, prefillData }) => {
                 </p>
               </>
             )}
-            
-            <button className="btn btn-primary" onClick={resetForm}>Close Window</button>
+
+            {/* WhatsApp Share */}
+            {(() => {
+              const rawPhone = (formData.phone || '').replace(/\D/g, '');
+              const waPhone = rawPhone.length === 10 ? `91${rawPhone}` : rawPhone;
+              const waText = encodeURIComponent(
+                `🏛️ CivicFix Complaint Report\n` +
+                `━━━━━━━━━━━━━━━━━━━━\n` +
+                `📋 Complaint ID: ${issueId}\n` +
+                `📍 Location: ${formData.area}${formData.city ? ', ' + formData.city : ''}\n` +
+                `🔍 Issue: ${formData.issueType}\n` +
+                `⚠️ Severity: ${formData.severity}\n` +
+                `📝 Description: ${formData.description}\n` +
+                `━━━━━━━━━━━━━━━━━━━━\n` +
+                `Track status at: ${window.location.origin}/track`
+              );
+              const waUrl = waPhone
+                ? `https://api.whatsapp.com/send/?phone=${waPhone}&text=${waText}&type=phone_number&app_absent=0`
+                : `https://web.whatsapp.com/send?text=${waText}`;
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', alignItems: 'center', marginBottom: '12px' }}>
+                  <a
+                    href={waUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '10px',
+                      background: '#25D366', color: '#fff', borderRadius: '12px',
+                      padding: '12px 28px', fontWeight: '700', fontSize: '15px',
+                      textDecoration: 'none', boxShadow: '0 4px 16px rgba(37,211,102,0.4)',
+                    }}
+                  >
+                    <span style={{ fontSize: '22px' }}>💬</span>
+                    Share Report on WhatsApp
+                  </a>
+                  <button className="btn btn-primary" onClick={resetForm}>Close Window</button>
+                </div>
+              );
+            })()}
           </div>
         ) : view === 'recommendation' ? (
           <div className="recommendation-view animate-fade-in-up">
@@ -501,6 +554,8 @@ const ReportIssueModal = ({ isOpen, onClose, prefillData }) => {
                       <option>English</option>
                       <option>Tamil</option>
                       <option>Hindi</option>
+                      <option>Telugu</option>
+                      <option>Malayalam</option>
                       <option>Others</option>
                     </select>
                   </div>

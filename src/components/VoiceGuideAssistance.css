@@ -2,31 +2,60 @@
     position: fixed;
     right: 16px;
     bottom: 16px;
-    width: min(360px, calc(100vw - 32px));
+    width: min(400px, calc(100vw - 32px));
     background: #ffffff;
     border: 1px solid #d8e2f3;
-    border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
-    padding: 14px;
+    border-radius: 16px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+    padding: 18px 20px;
     z-index: 3000;
 }
 
 .voice-guide-widget h3 {
-    margin: 0 0 8px;
-    font-size: 1rem;
+    margin: 0 0 10px;
+    font-size: 1.05rem;
+    font-weight: 700;
 }
 
 .guide-step-text {
-    margin: 0 0 12px;
+    margin: 0 0 14px;
     color: #4a5568;
-    font-size: 0.92rem;
-    line-height: 1.35;
+    font-size: 0.95rem;
+    line-height: 1.4;
+    min-height: 40px;
 }
 
 .guide-actions {
     display: flex;
     gap: 8px;
     flex-wrap: wrap;
+}
+
+.guide-btn {
+    flex: 1;
+    min-width: 90px;
+    font-size: 0.88rem;
+    padding: 9px 10px;
+}
+
+/* Chat Bot button – purple accent */
+.guide-btn-chat {
+    flex: 1;
+    min-width: 90px;
+    padding: 9px 10px;
+    font-size: 0.88rem;
+    font-weight: 700;
+    border: 2px solid #7c3aed;
+    background: #7c3aed;
+    color: #fff;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.15s;
+}
+
+.guide-btn-chat:hover {
+    background: #6d28d9;
+    transform: translateY(-1px);
 }
 
 .guide-highlight {

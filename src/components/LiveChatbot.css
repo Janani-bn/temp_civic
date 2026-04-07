@@ -4,31 +4,16 @@
 
 .chatbot-container {
   position: fixed;
-  bottom: 24px;
-  right: 24px;
+  bottom: 16px;
+  right: 16px;
   z-index: 9999;
   font-family: 'Segoe UI', sans-serif;
 }
 
-/* Toggle Button */
-.chatbot-toggle-btn {
-  display: flex;
-  align-items: center;
-  background: linear-gradient(135deg, #3b3fe8, #5b5ef7);
-  color: #fff;
-  border: none;
-  border-radius: 50px;
-  padding: 14px 22px;
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-  box-shadow: 0 6px 24px rgba(59, 63, 232, 0.45);
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
+/* Toggle button hidden — Chat Bot is now inside the Voice Guide widget */
+.chatbot-toggle-btn,
 .chatbot-toggle-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 30px rgba(59, 63, 232, 0.55);
+  display: none !important;
 }
 
 /* Window */
