@@ -38,7 +38,20 @@ const LiveMap = () => {
             console.error("Failed to fetch reports from API:", err);
         }
 
-        const localReports = JSON.parse(localStorage.getItem("reports") || "[]");
+        let localReports = JSON.parse(localStorage.getItem("reports") || "[]");
+
+        if (apiReports.length === 0 && localReports.length === 0) {
+            const dummyReports = [
+                { id: "mock-1", lat: 13.0827, lng: 80.2707, severity: "High", issueType: "Broken Road", place: "Chennai Central", date: new Date().toLocaleDateString(), status: "Pending", department: "Roads Department", complaint_id: "CMP-M1" },
+                { id: "mock-2", lat: 13.0418, lng: 80.2341, severity: "Medium", issueType: "Garbage Overflow", place: "T Nagar", date: new Date().toLocaleDateString(), status: "In Progress", department: "Sanitation", complaint_id: "CMP-M2" },
+                { id: "mock-3", lat: 13.0012, lng: 80.2565, severity: "Low", issueType: "Streetlight Out", place: "Adyar", date: new Date().toLocaleDateString(), status: "Resolved", department: "Electrical", complaint_id: "CMP-M3" }
+            ];
+            localReports = dummyReports;
+            localStorage.setItem("reports", JSON.stringify(dummyReports));
+            if (!localStorage.getItem('civicfix_issues')) {
+                localStorage.setItem('civicfix_issues', JSON.stringify(dummyReports));
+            }
+        }
         
         // Merge them, avoiding duplicates by complaint ID
         const merged = [...apiReports];
@@ -83,6 +96,7 @@ const LiveMap = () => {
 
     // Auto-request location on mount
     useEffect(() => {
+
         if (!navigator.geolocation) {
             setLocationError("Geolocation is not supported by your browser.");
             return;

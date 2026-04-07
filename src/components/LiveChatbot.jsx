@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { X, Send } from 'lucide-react';
 import './LiveChatbot.css';
 
@@ -84,7 +84,7 @@ const parseMessage = (text) => {
   const phone = phoneMatch ? phoneMatch[0] : '';
 
   const nameMatch = text.match(/(?:my name is|i am|i'm|name[:\s]+)\s*([A-Z][a-z]+(?:\s[A-Z][a-z]+)?)/i);
-  const name = nameMatch ? nameMatch[1].trim() : '';
+  const fullName = nameMatch ? nameMatch[1].trim() : '';
 
   let duration = '';
   const durationMatch = text.match(/(?:for|since|past|last)\s+(\d+\s*(days?|weeks?|months?|years?))/i);
@@ -122,19 +122,11 @@ const parseMessage = (text) => {
       }
     }
   }
-  if (!area && !city) {
-    const commaWords = [...text.matchAll(/,\s*([A-Za-z][A-Za-z\s]{1,25}?)(?=\s*(?:,|$|\.|;))/gi)];
-    const stopWords = new Set(['my', 'the', 'and', 'for', 'is', 'email', 'phone', 'number', 'please', 'contact', 'it', 'this', 'that', 'here', 'there']);
-    for (const match of commaWords) {
-      const candidate = match[1].trim();
-      if (!stopWords.has(candidate.toLowerCase())) { area = candidate; break; }
-    }
-  }
 
   let description = text;
   if (email) description = description.replace(email, '');
   if (phone) description = description.replace(phone, '');
-  if (name) description = description.replace(nameMatch[0], '');
+  if (fullName) description = description.replace(nameMatch[0], '');
   if (duration) description = description.replace(/(?:for|since|past|last)\s+\d+\s*(days?|weeks?|months?|years?)/i, '');
   if (area) description = description.replace(new RegExp(`\\b${area}\\b`, 'gi'), '');
   if (city) description = description.replace(new RegExp(`\\b${city}\\b`, 'gi'), '');
@@ -143,7 +135,7 @@ const parseMessage = (text) => {
   description = description.replace(/\b(?:urgent|dangerous|serious|severe|minor|low|high)\b/gi, '');
   description = description.replace(/[,]+/g, ' ').replace(/\s+/g, ' ').trim().replace(/^[,.\s]+|[,.\s]+$/g, '').trim();
 
-  return { issueType, email, phone, name, area, city, duration, description, severity };
+  return { issueType, email, phone, fullName, area, city, duration, description, severity };
 };
 
 // ============================================================
@@ -156,29 +148,23 @@ const ISSUE_OPTIONS = [
   { emoji: '💡', label: 'Streetlight not working' },
   { emoji: '🚰', label: 'Drainage issue' },
   { emoji: '🛣️', label: 'Broken road' },
-  { emoji: '📢', label: 'Noise pollution' },
-  { emoji: '🌳', label: 'Fallen tree' },
-  { emoji: '🌊', label: 'Flooding' },
   { emoji: '❓', label: 'Others' },
 ];
 
 const SEVERITY_OPTIONS = [
-  { emoji: '🟢', label: 'Low – minor inconvenience', value: 'low' },
-  { emoji: '🟡', label: 'Medium – affects daily life', value: 'medium' },
-  { emoji: '🔴', label: 'High – dangerous / urgent', value: 'high' },
+  { emoji: '🟢', label: 'Low', value: 'low' },
+  { emoji: '🟡', label: 'Medium', value: 'medium' },
+  { emoji: '🔴', label: 'High', value: 'high' },
 ];
 
-// ============================================================
-// MAIN COMPONENT
-// ============================================================
-const LiveChatbot = ({ onAutoFill }) => {
+const LiveChatbot = ({ onAutoFill, forceOpen, onForceOpened }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [step, setStep] = useState('welcome');
   const [formData, setFormData] = useState({
     issueType: '', description: '', area: '', city: '',
-    severity: 'medium', name: '', phone: '', email: '',
+    severity: 'medium', fullName: '', phone: '', email: '',
   });
   const [showOptions, setShowOptions] = useState(null);
   const [started, setStarted] = useState(false);
@@ -186,37 +172,43 @@ const LiveChatbot = ({ onAutoFill }) => {
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
+    if (forceOpen) {
+      setIsOpen(true);
+      if (onForceOpened) onForceOpened();
+    }
+  }, [forceOpen, onForceOpened]);
+
+  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, showOptions, isTyping]);
 
-  const botSay = (text, delay = 0, afterFn = null) => {
+  const botSay = useCallback((text, delay = 0, afterFn = null) => {
     setIsTyping(true);
     setTimeout(() => {
       setIsTyping(false);
       setMessages(prev => [...prev, { sender: 'bot', text }]);
       if (afterFn) afterFn();
     }, delay + 600);
-  };
+  }, []);
 
   const userSay = (text) => {
     setMessages(prev => [...prev, { sender: 'user', text }]);
   };
 
-  // Boot when opened
   useEffect(() => {
     if (isOpen && !started) {
       setStarted(true);
-      botSay("👋 Hey! How can I help you today?", 200, () => {
+      botSay("👋 Hey! I'm your CivicFix assistant. How can I help you today?", 200, () => {
         botSay(
-          "I can help you report a civic issue in your area.\n\nChoose how you'd like to proceed:",
+          "I can help you report an issue step-by-step, or you can just describe it to me.",
           400,
           () => setShowOptions('start')
         );
       });
     }
-  }, [isOpen]);
+  }, [isOpen, started, botSay]);
 
-  const goToStep = (nextStep, data) => {
+  const goToStep = useCallback((nextStep, data) => {
     setStep(nextStep);
     const d = data || formData;
     switch (nextStep) {
@@ -227,22 +219,19 @@ const LiveChatbot = ({ onAutoFill }) => {
         botSay("Please describe the problem briefly.", 200);
         break;
       case 'ask_area':
-        botSay("Which locality / area is this in?\n(e.g. Koramangala, Andheri, Anna Nagar)", 200);
+        botSay("Which area in your city is this in?", 200);
         break;
       case 'ask_city':
-        botSay("Which city? (e.g. Chennai, Mumbai, Delhi)", 200);
+        botSay("Which city? (e.g. Chennai, Mumbai)", 200);
         break;
       case 'ask_severity':
         botSay("How serious is this issue?", 200, () => setShowOptions('severity'));
         break;
       case 'ask_name':
-        botSay("What's your name? (type 'skip' to skip)", 200);
+        botSay("What's your full name?", 200);
         break;
       case 'ask_phone':
-        botSay("Your 10-digit phone number? (type 'skip' to skip)", 200);
-        break;
-      case 'ask_email':
-        botSay("Your email address? (type 'skip' to skip)", 200);
+        botSay("Your phone number?", 200);
         break;
       case 'confirm':
         setTimeout(() => showSummary(d), 700);
@@ -250,27 +239,20 @@ const LiveChatbot = ({ onAutoFill }) => {
       default:
         break;
     }
-  };
+  }, [formData, botSay]);
 
   const showSummary = (data) => {
-    const locationStr = [data.area, data.city].filter(Boolean).join(', ') || 'Not specified';
-    const severityLabel = SEVERITY_OPTIONS.find(s => s.value === data.severity)?.label || data.severity;
-
     const lines = [
-      "✅ Here's a summary of your report:\n",
-      `📋 Issue: ${data.issueType || 'Not specified'}`,
-      `📝 Description: ${data.description || 'Not specified'}`,
-      `📍 Location: ${locationStr}`,
-      `⚠️ Severity: ${severityLabel}`,
-      data.name ? `👤 Name: ${data.name}` : null,
-      data.phone ? `📞 Phone: ${data.phone}` : null,
-      data.email ? `✉️ Email: ${data.email}` : null,
-    ].filter(Boolean).join('\n');
+      "✅ Got it! I've prepared your report summary:\n",
+      `📋 Issue: ${data.issueType}`,
+      `📍 Location: ${data.area}, ${data.city}`,
+      `⚠️ Severity: ${data.severity}`,
+    ].join('\n');
 
     botSay(lines, 200, () => {
       setTimeout(() => {
-        onAutoFill(data);
-        botSay("🎉 Form auto-filled! Please review and hit Submit.", 200);
+        if (onAutoFill) onAutoFill(data);
+        botSay("🎉 I've auto-filled the form for you! Verify and submit.", 200);
       }, 800);
     });
   };
@@ -282,18 +264,16 @@ const LiveChatbot = ({ onAutoFill }) => {
     setShowOptions(null);
     userSay(val);
 
-    // One-shot mode
     if (step === 'welcome' || step === 'oneshot') {
       const parsed = parseMessage(val);
       const merged = { ...formData, ...parsed };
-      const hasEnough = parsed.issueType !== 'Others' || parsed.area || parsed.city || parsed.phone || parsed.email;
-      if (hasEnough) {
+      if (parsed.issueType !== 'Others' || parsed.area) {
         setFormData(merged);
         setStep('confirm');
-        setTimeout(() => showSummary(merged), 600);
+        showSummary(merged);
       } else {
-        setFormData(prev => ({ ...prev, description: val }));
-        botSay("I couldn't detect enough details automatically. Let me guide you 😊", 200, () => {
+        botSay("I need a few more details. Let's do it step-by-step.", 200, () => {
+          setFormData(prev => ({ ...prev, description: val }));
           goToStep('ask_issue', { ...formData, description: val });
         });
       }
@@ -303,52 +283,31 @@ const LiveChatbot = ({ onAutoFill }) => {
     const skip = val.toLowerCase() === 'skip';
 
     switch (step) {
-      case 'ask_description': {
-        const d = { ...formData, description: val };
-        setFormData(d);
-        goToStep('ask_area', d);
+      case 'ask_description':
+        const d_desc = { ...formData, description: val };
+        setFormData(d_desc);
+        goToStep('ask_area', d_desc);
         break;
-      }
-      case 'ask_area': {
-        const d = { ...formData, area: skip ? '' : val };
-        setFormData(d);
-        goToStep('ask_city', d);
+      case 'ask_area':
+        const d_area = { ...formData, area: val };
+        setFormData(d_area);
+        goToStep('ask_city', d_area);
         break;
-      }
-      case 'ask_city': {
-        const d = { ...formData, city: skip ? '' : val };
-        setFormData(d);
-        goToStep('ask_severity', d);
+      case 'ask_city':
+        const d_city = { ...formData, city: val };
+        setFormData(d_city);
+        goToStep('ask_severity', d_city);
         break;
-      }
-      case 'ask_name': {
-        const d = { ...formData, name: skip ? '' : val };
-        setFormData(d);
-        goToStep('ask_phone', d);
+      case 'ask_name':
+        const d_name = { ...formData, fullName: skip ? '' : val };
+        setFormData(d_name);
+        goToStep('ask_phone', d_name);
         break;
-      }
-      case 'ask_phone': {
-        const phoneMatch = val.match(/(?:\+91[-\s]?)?\b[6-9]\d{9}\b/);
-        if (!skip && !phoneMatch) {
-          botSay("⚠️ Please enter a valid 10-digit Indian phone number, or type 'skip'.", 200);
-          return;
-        }
-        const d = { ...formData, phone: skip ? '' : (phoneMatch ? phoneMatch[0] : '') };
-        setFormData(d);
-        goToStep('ask_email', d);
+      case 'ask_phone':
+        const d_phone = { ...formData, phone: skip ? '' : val };
+        setFormData(d_phone);
+        goToStep('confirm', d_phone);
         break;
-      }
-      case 'ask_email': {
-        const emailMatch = val.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
-        if (!skip && !emailMatch) {
-          botSay("⚠️ That doesn't look like a valid email. Try again or type 'skip'.", 200);
-          return;
-        }
-        const d = { ...formData, email: skip ? '' : (emailMatch ? emailMatch[0] : '') };
-        setFormData(d);
-        goToStep('confirm', d);
-        break;
-      }
       default:
         break;
     }
@@ -356,143 +315,68 @@ const LiveChatbot = ({ onAutoFill }) => {
 
   const handleOption = (type, value) => {
     setShowOptions(null);
-
     if (type === 'start') {
       if (value === 'guided') {
         userSay('Guide me step by step 🪄');
         goToStep('ask_issue');
       } else {
-        userSay('I\'ll describe everything at once 💬');
-        botSay("Perfect! Describe the issue — include location, phone, email, whatever you have 👇", 200);
+        userSay('I\'ll describe it myself 💬');
+        botSay("Sure! Describe the issue, location, and severity in one message.", 200);
         setStep('oneshot');
       }
-      return;
-    }
-
-    if (type === 'issue') {
+    } else if (type === 'issue') {
       userSay(`${value.emoji} ${value.label}`);
       const d = { ...formData, issueType: value.label };
       setFormData(d);
       goToStep('ask_description', d);
-      return;
-    }
-
-    if (type === 'severity') {
+    } else if (type === 'severity') {
       userSay(`${value.emoji} ${value.label}`);
       const d = { ...formData, severity: value.value };
       setFormData(d);
       goToStep('ask_name', d);
-      return;
     }
-  };
-
-  const handleReset = () => {
-    setMessages([]);
-    setStep('welcome');
-    setFormData({ issueType: '', description: '', area: '', city: '', severity: 'medium', name: '', phone: '', email: '' });
-    setShowOptions(null);
-    setStarted(false);
-    setIsTyping(false);
-    setTimeout(() => {
-      botSay("👋 Hey! How can I help you today?", 200, () => {
-        botSay("Choose how you'd like to proceed:", 400, () => setShowOptions('start'));
-      });
-    }, 200);
   };
 
   return (
     <div className="chatbot-container">
       {!isOpen ? (
-        <button className="chatbot-toggle-btn animate-bounce-soft" onClick={() => setIsOpen(true)}>
-          <span style={{ fontSize: '22px', marginRight: '8px' }}>🤖</span>
-          <span>CivicFix Assistant</span>
+        <button className="chatbot-toggle-btn" onClick={() => setIsOpen(true)}>
+          <span style={{ fontSize: '24px' }}>🤖</span>
+          <span className="chatbot-toggle-label">CivicFix Assistant</span>
         </button>
       ) : (
-        <div className="chatbot-window animate-fade-in-up">
-
-          {/* Header */}
+        <div className="chatbot-window">
           <div className="chatbot-header">
-            <div className="chatbot-title">
-              <span style={{ fontSize: '20px' }}>🤖</span>
-              <span>CivicFix Assistant</span>
-            </div>
-            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-              <button onClick={handleReset} className="chatbot-reset-btn" title="Start over">
-                🔄
-              </button>
-              <button className="chatbot-close-btn" onClick={() => setIsOpen(false)}>
-                <X size={20} />
-              </button>
-            </div>
+            <span className="chatbot-title">🤖 CivicFix Assistant</span>
+            <button className="chatbot-close-btn" onClick={() => setIsOpen(false)}><X size={20} /></button>
           </div>
-
-          {/* Messages */}
           <div className="chatbot-messages">
             {messages.map((m, i) => (
-              <div
-                key={i}
-                className={`chat-bubble ${m.sender === 'user' ? 'user' : 'bot'}`}
-                style={{ whiteSpace: 'pre-line' }}
-              >
-                {m.text}
-              </div>
+              <div key={i} className={`chat-bubble ${m.sender === 'user' ? 'user' : 'bot'}`}>{m.text}</div>
             ))}
-
-            {/* Typing indicator */}
-            {isTyping && (
-              <div className="chat-bubble bot typing-indicator">
-                <span /><span /><span />
-              </div>
-            )}
-
-            {/* Quick Options */}
-            {!isTyping && showOptions === 'start' && (
+            {isTyping && <div className="chat-bubble bot typing">...</div>}
+            {showOptions === 'start' && (
               <div className="quick-options">
-                <button className="option-btn wide" onClick={() => handleOption('start', 'oneshot')}>
-                  💬 Describe everything at once
-                </button>
-                <button className="option-btn wide" onClick={() => handleOption('start', 'guided')}>
-                  🪄 Guide me step by step
-                </button>
+                <button className="option-btn" onClick={() => handleOption('start', 'guided')}>Guide me 🪄</button>
+                <button className="option-btn" onClick={() => handleOption('start', 'oneshot')}>I'll describe it 💬</button>
               </div>
             )}
-
-            {!isTyping && showOptions === 'issue' && (
+            {showOptions === 'issue' && (
               <div className="quick-options grid">
-                {ISSUE_OPTIONS.map(opt => (
-                  <button key={opt.label} className="option-btn" onClick={() => handleOption('issue', opt)}>
-                    {opt.emoji} {opt.label}
-                  </button>
-                ))}
+                {ISSUE_OPTIONS.map(o => <button key={o.label} className="option-btn" onClick={() => handleOption('issue', o)}>{o.emoji} {o.label}</button>)}
               </div>
             )}
-
-            {!isTyping && showOptions === 'severity' && (
+            {showOptions === 'severity' && (
               <div className="quick-options">
-                {SEVERITY_OPTIONS.map(opt => (
-                  <button key={opt.value} className="option-btn wide" onClick={() => handleOption('severity', opt)}>
-                    {opt.emoji} {opt.label}
-                  </button>
-                ))}
+                {SEVERITY_OPTIONS.map(o => <button key={o.value} className="option-btn" onClick={() => handleOption('severity', o)}>{o.emoji} {o.label}</button>)}
               </div>
             )}
-
             <div ref={messagesEndRef} />
           </div>
-
-          {/* Input */}
           <div className="chatbot-input-area">
-            <input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-              placeholder="Type a message..."
-            />
-            <button className="chatbot-send-btn" onClick={handleSend} disabled={!input.trim()}>
-              <Send size={18} />
-            </button>
+            <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSend()} placeholder="Type a message..." />
+            <button className="chatbot-send-btn" onClick={handleSend}><Send size={18} /></button>
           </div>
-
         </div>
       )}
     </div>

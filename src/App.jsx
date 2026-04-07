@@ -1,3 +1,8 @@
+import { useState, useCallback } from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import './App.css';
+
+// Components
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import ReportIssueModal from './components/ReportIssueModal';
@@ -10,17 +15,12 @@ import TrackComplaint from './components/TrackComplaint';
 import AdminDashboard from './components/AdminDashboard';
 import VoiceGuideAssistant from './components/VoiceGuideAssistance';
 import MyComplaints from './components/MyComplaints';
-import AIChatbot from './components/AIChatbot';
 import NearbyComplaints from './components/NearbyComplaints';
 import ProtectedRoute from './components/ProtectedRoute';
 import LiveFeed from './components/LiveFeed';
 import VolunteerDashboard from './components/volunteerdashboard';
+import WelcomeOverlay from './components/WelcomeOverlay';
 import LiveChatbot from './components/LiveChatbot';
-
-import { useState, useCallback } from 'react';
-import './App.css';
-
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
 function Home({ onOpenReport }) {
   return (
@@ -35,19 +35,26 @@ function Home({ onOpenReport }) {
 
 function App() {
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
-  const [aiPrefillData, setAiPrefillData] = useState(null);
+  const [reportPreFillData, setReportPreFillData] = useState(null);
+  const [chatbotOpen, setChatbotOpen] = useState(false);
+  const [guideStart, setGuideStart] = useState(false);
+  const [selectedLanguage, setSelectedLanguage] = useState('en-IN');
 
-  const handleAIPrefill = useCallback((data) => {
-    setAiPrefillData(data);
+  const handleOpenReport = useCallback((data = null) => {
+    setReportPreFillData(data);
     setIsReportModalOpen(true);
   }, []);
 
-  const [reportPreFillData, setReportPreFillData] = useState(null);
+  const handleCloseReport = useCallback(() => {
+    setIsReportModalOpen(false);
+    setReportPreFillData(null);
+  }, []);
+
   return (
     <Router>
-      <Navbar onOpenReport={() => setIsReportModalOpen(true)} />
+      <Navbar onOpenReport={() => handleOpenReport()} />
       <Routes>
-        <Route path="/" element={<Home onOpenReport={() => setIsReportModalOpen(true)} />} />
+        <Route path="/" element={<Home onOpenReport={() => handleOpenReport()} />} />
         <Route path="/feed" element={<LiveFeed />} />
         <Route path="/map" element={<LiveMap />} />
         <Route path="/signup" element={<SignUp />} />
@@ -91,21 +98,29 @@ function App() {
 
       <ReportIssueModal
         isOpen={isReportModalOpen}
-        onClose={() => { setIsReportModalOpen(false); setAiPrefillData(null); }}
-        prefillData={aiPrefillData}
-        onClose={() => { setIsReportModalOpen(false); setReportPreFillData(null); }}
+        onClose={handleCloseReport}
         initialData={reportPreFillData}
       />
-      <LiveChatbot
-        onAutoFill={(data) => {
-          setReportPreFillData(data);
-          setIsReportModalOpen(true);
-        }}
-      />
-      <VoiceGuideAssistant />
-      <AIChatbot onPrefillReport={handleAIPrefill} />
-    </Router>
 
+      <LiveChatbot 
+        onAutoFill={handleOpenReport} 
+        forceOpen={chatbotOpen} 
+        onForceOpened={() => setChatbotOpen(false)} 
+      />
+
+      <VoiceGuideAssistant
+        externalStart={guideStart}
+        onExternalStarted={() => setGuideStart(false)}
+        onOpenChatbot={() => setChatbotOpen(true)}
+        selectedLanguage={selectedLanguage}
+      />
+
+      <WelcomeOverlay
+        onStartGuide={() => setGuideStart(true)}
+        onOpenChatbot={() => setChatbotOpen(true)}
+        onLanguageSelect={(lang) => setSelectedLanguage(lang)}
+      />
+    </Router>
   );
 }
 

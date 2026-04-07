@@ -10,7 +10,8 @@ const SignUp = () => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    password: ''
+    password: '',
+    role: 'citizen'
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -27,7 +28,10 @@ const SignUp = () => {
 
     try {
       await signup(formData);
-      navigate('/feed');
+      localStorage.setItem('userRole', formData.role);
+      if (formData.role === 'volunteer') navigate('/volunteer');
+      else if (formData.role === 'admin') navigate('/admin');
+      else navigate('/feed');
     } catch (err) {
       setError(err.message || 'An error occurred during signup.');
     } finally {
@@ -80,6 +84,40 @@ const SignUp = () => {
               minLength={6}
               autoComplete="new-password"
             />
+          </div>
+
+          {/* ROLE SELECTOR */}
+          <div className="role-selector">
+            <p className="role-label">Sign up as</p>
+            <div className="role-options" style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
+              <button
+                type="button"
+                className={`role-btn ${formData.role === 'citizen' ? 'active' : ''}`}
+                onClick={() => setFormData(prev => ({ ...prev, role: 'citizen' }))}
+              >
+                <span className="role-icon">👤</span>
+                <span className="role-name">Citizen</span>
+                <span className="role-desc">Report issues</span>
+              </button>
+              <button
+                type="button"
+                className={`role-btn ${formData.role === 'volunteer' ? 'active' : ''}`}
+                onClick={() => setFormData(prev => ({ ...prev, role: 'volunteer' }))}
+              >
+                <span className="role-icon">🤝</span>
+                <span className="role-name">Volunteer</span>
+                <span className="role-desc">Help resolve</span>
+              </button>
+              <button
+                type="button"
+                className={`role-btn ${formData.role === 'admin' ? 'active' : ''}`}
+                onClick={() => setFormData(prev => ({ ...prev, role: 'admin' }))}
+              >
+                <span className="role-icon">🏛️</span>
+                <span className="role-name">Authority</span>
+                <span className="role-desc">Manage reports</span>
+              </button>
+            </div>
           </div>
 
           <div className="auth-actions">
